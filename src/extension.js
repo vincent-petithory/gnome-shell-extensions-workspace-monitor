@@ -22,15 +22,28 @@ const Main = imports.ui.main;
 const Tweener = imports.ui.tweener;
 const Clutter = imports.gi.Clutter;
 const Lang = imports.lang;
+const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
 const Panel = imports.ui.panel;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Gtk = imports.gi.Gtk;
+const Overview = imports.ui.overview;
+
+// TODO I18N
+
+// TODO PREFS : THUMBNAIL_MAX_SIZE + affectsStruts
+
+// TODO Handle workspace destroyed
+
+function _(s) {
+    return s;
+}
 
 
-let THUMBNAIL_MAX_SIZE = 300;
+let THUMBNAIL_MAX_SIZE = Main.layoutManager.primaryMonitor.width*0.2;
+let AFFECTS_STRUTS = true;
 
 const WindowClone = new Lang.Class({
     Name: 'WindowClone',
@@ -40,61 +53,236 @@ const WindowClone = new Lang.Class({
         this.metaWindow = realWindow.meta_window;
 //        this.metaWindow._delegate = this;
         
-        this.actor = new St.Bin();
+        this.actor = new St.Bin({ reactive: true });
         
-        this._texture = realWindow.get_texture();
-        let [width, height] = this._texture.get_size();
-        let scale = Math.min(1.0, maxSize/width, maxSize/height);
-        global.log("creating window with: scale="+scale+", width="+width+", height="+height+", sw="+width*scale+", sh="+height*scale);
+        this._texture = this.realWindow.get_texture();
         this._windowClone = new Clutter.Clone({
             source: this._texture,
-            reactive: true,
-            width: width*scale,
-            height: height*scale
+            reactive: false
         });
-
-        // Destroy the clone upon source destruction
-        this._windowClone.source.connect('destroy', Lang.bind(this, function() {
-            this._windowClone.destroy();
-        }));
-        this.actor.set_size(maxSize, maxSize);
+        
+//        // Destroy the clone upon source destruction
+//        this._windowClone.source.connect('destroy', Lang.bind(this, function() {
+//            this._windowClone.destroy();
+//        }));
+        this._realWindowDestroyId = this.realWindow.connect('destroy',
+            Lang.bind(this, this._disconnectRealWindowSignals));
+        this._realWindowSizeChangedId = this.realWindow.connect('size-changed',
+            Lang.bind(this, this._onRealWindowSizeChanged));
+        this._windowCloneClickedId = this.actor.connect('button-release-event',
+            Lang.bind(this, this._onButtonRelease));
+        
+        this.adjust_size(maxSize);
         this.actor.add_actor(this._windowClone);
+    },
+    
+    adjust_size: function (maxSize) {
+        let [width, height] = this._texture.get_size();
+        let scale = Math.min(1.0, maxSize/width, maxSize/height);
+        this._windowClone.set_size(width*scale, height*scale);
+        this.actor.set_size(maxSize, maxSize);
+        this._maxSize = maxSize;
+    },
+    
+    destroy: function() {
+        this._disconnectRealWindowSignals();
+        if (this._windowClone) {
+            this._windowClone.destroy();
+        }
+        if (this.actor) {
+            this.actor.destroy();
+        }
+    },
+    
+    _onButtonRelease: function() {
+        Main.activateWindow(this.metaWindow);
+    },
+    
+    _onRealWindowSizeChanged: function () {
+        this.adjust_size(this._maxSize);
+    },
+    
+    _disconnectRealWindowSignals: function() {
+        if (!this.realWindow)
+            return;
+        if (this._realWindowSizeChangedId > 0)
+            this.realWindow.disconnect(this._realWindowSizeChangedId);
+        this._realWindowSizeChangedId = 0;
+
+        if (this._realWindowDestroyId > 0)
+            this.realWindow.disconnect(this._realWindowDestroyId);
+        this._realWindowDestroyId = 0;
     }
+    
 
 });
 
-const DockPanel = new Lang.Class({
-    Name: 'DockPanel',
+const WorkspaceMonitor = new Lang.Class({
+    Name: 'WorkspaceMonitor',
 
-    _init: function() {
-        let index = 0;
+    _init: function(metaWorkspace, affectsStruts) {
         this.monitorIndex = Main.layoutManager.primaryIndex;
         this.request_display = false;
 
-        this.metaWorkspace = global.screen.get_workspace_by_index(index);
-//        this._windowAddedId = this.metaWorkspace.connect('window-added',
-//                                                          Lang.bind(this, this._windowAdded));
-//        this._windowRemovedId = this.metaWorkspace.connect('window-removed',
-//                                                           Lang.bind(this, this._windowRemoved));
-        this.actor = new St.Bin({ style_class: 'dock-panel' });
-
-
-        this._box = new St.BoxLayout({ vertical: true });
+        this.metaWorkspace = metaWorkspace;
+        this.affectsStruts = affectsStruts;
+        
+        this._windowClones = [];
+        
+        // We use the style class of the workspace thumbnails background
+        // seen in the overview, for style consistency.
+        this.actor = new St.Bin({ reactive: false, style_class: 'workspace-thumbnails-background' });
+        this._box = new St.BoxLayout({ name: 'workspace-view',
+                                       vertical: true,
+                                       reactive: false/*,
+                                       clip_to_allocation: true*/ });
+        this._box._delegate = this;
         this.actor.add_actor(this._box);
+        
+        this.computeSize();
+    },
+    
+    _overviewShowing: function() {
+        if (this.request_display) {
+            this.actor.opacity = 255;
+            this.actor.hide();
+            Tweener.addTween(this.actor, {
+                opacity: 0,
+                transition: 'easeOutQuad',
+                time: Overview.ANIMATION_TIME
+            });
+        }
+    },
+    
+    _overviewHiding: function() {
+        if (this.request_display) {
+            this.actor.opacity = 0;
+            this.actor.show();
+            Tweener.addTween(this.actor, {
+                opacity: 255,
+                transition: 'easeOutQuad',
+                time: Overview.ANIMATION_TIME
+            });
+        }
+    },
+    
+    _windowAdded: function (metaWorkspace, metaWin) {
+        if (!this.request_display) {
+            return;
+        }
+        if (this.metaWorkspace != metaWorkspace) {
+            return;
+        }
+        let realWin = metaWin.get_compositor_private();
+        if (!realWin) {
+            // Newly-created windows are added to a workspace before
+            // the compositor finds out about them...
+            Mainloop.idle_add(Lang.bind(this,
+                                        function () {
+                                            if (this.actor &&
+                                                metaWin.get_compositor_private())
+                                                this._windowAdded(metaWorkspace, metaWin);
+                                            return false;
+                                        }));
+        } else {
+            if (!this._isWindowInteresting(realWin)) {
+                return;
+            }
+            this.computeSize();
+            this._doAddWindow(realWin);
+            this.position();
+        }
+    },
+    
+    _windowRemoved: function (metaWorkspace, metaWin) {
+        if (!this.request_display) {
+            return;
+        }
+        this._doRemoveWindow(metaWin);
+        this.computeSize();
+        this.position();
+    },
+    
+    _windowEnteredMonitor : function(metaScreen, monitorIndex, metaWin) {
+        if (monitorIndex == this.monitorIndex) {
+            this._windowAdded(metaWin.get_workspace(), metaWin);
+        }
+    },
 
+    _windowLeftMonitor : function(metaScreen, monitorIndex, metaWin) {
+        if (monitorIndex == this.monitorIndex) {
+            this._doRemoveWindow(metaWin);
+        }
+    },
+
+    _doAddWindow: function (realWin) {
+        let windowClone = new WindowClone(realWin, this._maxSize);
+        this._windowClones.push(windowClone);
+        this._box.add_actor(windowClone.actor);
+    },
+    
+    _doRemoveWindow: function (metaWin) {
+        for (let i = 0; i < this._windowClones.length; i++) {
+            let metaWindow = this._windowClones[i].metaWindow;
+            if (metaWin == metaWindow) {
+                let windowClone = this._windowClones.splice(i,1)[0];
+                if (windowClone.actor) {
+                    this._box.remove_actor(windowClone.actor);
+                }
+                windowClone.destroy();
+            }
+        }
+    },
+    
+    getWindowClone: function (metaWin) {
+        for (let i = 0; i < this._windowClones.length; i++) {
+            let metaWindow = this._windowClones[i].metaWindow;
+            if (metaWin == metaWindow) {
+                return this._windowClones[i];
+            }
+        }
+        return null;
+    },
+    
+    hasWindowClone: function (metaWin) {
+        return this.getWindowClone(metaWin) != null;
+    },
+
+    computeSize: function() {
+        let windows = global.get_window_actors().filter(this._isWindowInteresting, this);
+        
         let monitor = Main.layoutManager.primaryMonitor;
-
-        // Listen to hide / show events of the Overview, to hide / show our panel accordingly
-        this._overviewShowingId = Main.overview.connect('showing', Lang.bind(this, function() {
-            if (this.request_display) {
-                this.actor.hide();
+        this._marginTop = monitor.y + Main.panel.actor.height + 10;
+        this._marginBottom = 60;
+        let maxHeight = (monitor.height - (this._marginTop + this._marginBottom) ) / windows.length;
+        this._maxSize = Math.min(THUMBNAIL_MAX_SIZE, maxHeight);
+    },
+    
+    position: function() {
+        for (let i = 0; i < this._windowClones.length; i++) {
+            this._windowClones[i].adjust_size(this._maxSize);
+        }
+        
+        let monitor = Main.layoutManager.primaryMonitor;
+        this.actor.y = this._marginTop;
+        let x = monitor.x + monitor.width - this._maxSize;
+        // Disable this tween along the X-Axis when we are affecting struts,
+        // or the animation will be very laggy.
+        if (this.affectsStruts) {
+            this.actor.x = x;
+        } else {
+            if (this.actor.x == 0) {
+                this.actor.x = monitor.x + monitor.width - 10;
             }
-        }));
-        this._overviewHiddenId = Main.overview.connect('hidden', Lang.bind(this, function() {
-            if (this.request_display) {
-                this.actor.show();
-            }
-        }));
+            Tweener.addTween(this.actor,
+             { x: x,
+               transition: 'easeOutQuad',
+               time: Overview.ANIMATION_TIME
+             });
+        
+        }
+        
+        
     },
 
     // Tests if @win is interesting
@@ -104,135 +292,145 @@ const DockPanel = new Lang.Class({
                win.get_meta_window().showing_on_its_workspace() &&
                Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index());
     },
-
-    update: function() {
+    
+    show: function() {
+        if (!this.request_display) {
+            this.connectAll();
+            this.computeSize();
+            this.resetWindows();
+            this.position();
+            // Do not show the actor if we are in the Overview
+            if (Main.overview.visible) {
+                this.actor.hide();
+            } else {
+                this.actor.show();
+            }
+        }
+        this.request_display = true;
+    },
+    
+    refresh: function() {
+        this.hide();
+        this.show();
+    },
+    
+    resetWindows: function () {
         // Empty container
-        this.actor.foreach(function (child) {
-            this.remove(child);
-        });
+        this._box.destroy_all_children();
+        
         let windows = global.get_window_actors().filter(this._isWindowInteresting, this);
-        
-        let monitor = Main.layoutManager.primaryMonitor;
-        let maxHeight = (monitor.height - 2*(monitor.y + Panel.PANEL_ICON_SIZE + 10)) / windows.length;
-        let maxSize = Math.max(THUMBNAIL_MAX_SIZE, maxHeight);
-        global.log('windows = '+String(windows.length)+', maxSize='+maxSize);
-        
-        this.actor.x = monitor.x + monitor.width - maxSize;
-        this.actor.y = monitor.y + Panel.PANEL_ICON_SIZE + 10;
-        
         for (let i = 0; i < windows.length; i++) {
-            // TODO Calculate the global available height.
-            // TODO Calculate the available height for each window
-            // TODO Calculate the corresponding width for a window
-//            global.log('Window '+i.toString()+': '+windows[i].meta_window.get_wm_class().toString()+ ", "+windows[i].meta_window.get_window_type().toString());
-            let windowClone = new WindowClone(windows[i], maxSize);
-//            global.log('created clone '+i.toString()+': '+windows[i].meta_window.get_wm_class().toString()+ ", "+windows[i].meta_window.get_window_type().toString());
-            this._box.add_actor(windowClone.actor);
-//            global.log('added clone '+i.toString()+': '+windows[i].meta_window.get_wm_class().toString()+ ", "+windows[i].meta_window.get_window_type().toString());
+            this._doAddWindow(windows[i], this._maxSize);
         }
     },
 
-    show: function() {
-        this.request_display = true;
-        this.update();
-        this.actor.show();
-    },
-
     hide: function() {
+        if (this.request_display) {
+            this.disconnectAll();
+            this.actor.hide();
+        }
         this.request_display = false;
-        this.actor.hide();
     },
-
-    destroy: function() {
+    
+    connectAll: function () {
+        // Listen to hide / show events of the Overview, to hide / show our panel accordingly
+        this._overviewShowingId = Main.overview.connect('showing',
+            Lang.bind(this, this._overviewShowing));
+        this._overviewHidingId = Main.overview.connect('hidden',
+            Lang.bind(this, this._overviewHiding));
+        
+        this._windowAddedId = this.metaWorkspace.connect('window-added',
+              Lang.bind(this, this._windowAdded));
+        this._windowRemovedId = this.metaWorkspace.connect('window-removed',
+              Lang.bind(this, this._windowRemoved));
+    },
+    
+    disconnectAll: function () {
         if (this._overviewShowingId) {
             Main.overview.disconnect(this._overviewShowingId);
             this._overviewShowingId = 0;
         }
 
-        if (this._overviewHiddenId) {
-            Main.overview.disconnect(this._overviewHiddenId);
-            this._overviewHiddenId = 0;
+        if (this._overviewHidingId) {
+            Main.overview.disconnect(this._overviewHidingId);
+            this._overviewHidingId = 0;
         }
+        
+        if (this._windowAddedId && this.metaWorkspace) {
+            this.metaWorkspace.disconnect(this._windowAddedId);
+            this._windowAddedId = 0;
+        }
+        
+        if (this._windowRemovedId && this.metaWorkspace) {
+            this.metaWorkspace.disconnect(this._windowRemovedId);
+            this._windowRemovedId = 0;
+        }
+    },
 
+    destroy: function() {
+        this.disconnectAll();
         this.actor.destroy();
     }
 
 });
 
+const StatusButton = new Lang.Class({
+    Name: 'StatusButton',
+    Extends: PanelMenu.SystemStatusButton,
 
-
-function PopupMenuItem(label, icon, callback) {
-    this._init(label, icon, callback);
-}
-
-PopupMenuItem.prototype = {
-    __proto__: PopupMenu.PopupBaseMenuItem.prototype,
-
-    _init: function(text, icon, callback) {
-        PopupMenu.PopupBaseMenuItem.prototype._init.call(this);
-
-        this.icon = new St.Icon({ icon_name: icon,
-                                  icon_type: St.IconType.FULLCOLOR,
-                                  style_class: 'popup-menu-icon' });
-        this.addActor(this.icon);
-        this.label = new St.Label({ text: text });
-        this.addActor(this.label);
-
-        this.connect('activate', callback);
-    }
-};
-
-function StatusButton(view) {
-    this._init(view);
-}
-
-StatusButton.prototype = {
-    __proto__: PanelMenu.SystemStatusButton.prototype,
-
-    _init: function(view) {
-        PanelMenu.SystemStatusButton.prototype._init.call(this, 'view-list');
-        this._view = view;
-        this.show_workspace_item = new PopupMenuItem(('Show'),
-                                            Gtk.STOCK_REMOVE,
-                                            Lang.bind(this, this._onShowWorkspace));
-        this.menu.addMenuItem(this.show_workspace_item);
-        Main.uiGroup.add_actor(this._view.actor);
-        this._view.actor.hide();
-
+    _init: function() {
+        this.parent('preferences-desktop-remote-desktop');
+        this._selectedWorkspaceIndex = 0;
+        this._workspaceSwitcherComboChangedId = 0;
+        this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
+            Lang.bind(this, this._updateWorkspaceSwitcherCombo));
+        
+        this._workspaceMonitorVisibilitySwitch = new PopupMenu.PopupSwitchMenuItem(_("Visible"));
+        this.menu.addMenuItem(this._workspaceMonitorVisibilitySwitch);
+        this._workspaceMonitorVisibilitySwitch.connect('toggled',
+            Lang.bind(this, this._toggleWorkspaceMonitorVisibility));
+        this._workspaceMonitorVisibilitySwitch.setToggleState(false);
+    },
+    
+    _switchWorkspace: function(menuItem, id) {
+        
+    },
+    
+    _updateWorkspaceSwitcherCombo: function() {
+        
     },
 
-    _onShowWorkspace: function() {
-        this._view.show()
-    },
-
-    destroy: function() {
-        if (this._view != null) {
-            Main.uiGroup.remove_actor(this._view.actor);
+    _toggleWorkspaceMonitorVisibility: function(item, event) {
+        if (this._view && !event) {
+            this._view.hide();
             this._view.destroy();
             this._view = null;
+        } else if (!this._view && event) {
+            let metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
+            this._view = new WorkspaceMonitor(metaWorkspace, AFFECTS_STRUTS);
+            Main.layoutManager.addChrome(this._view.actor, {affectsStruts: AFFECTS_STRUTS});
+//            Main.uiGroup.add_actor(this._view.actor);
+            this._view.show();
         }
     }
+    
+});
 
-}
 
-
-let status_button, dock_panel;
+let status_button;
 
 function init() {
     // Nothing
 }
 
 function enable() {
-    if (dock_panel == null) {
-        dock_panel = new DockPanel();
-    }
-    if (status_button == null) {
-        status_button = new StatusButton(dock_panel);
+    if (!status_button) {
+        status_button = new StatusButton();
         Main.panel.addToStatusArea('activator_button', status_button);
     }
 }
 
 function disable() {
     status_button.destroy();
-    dock_panel.destroy();
+    status_button = null;
 }
