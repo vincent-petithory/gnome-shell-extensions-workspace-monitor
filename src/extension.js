@@ -241,11 +241,11 @@ const WorkspaceMonitor = new Lang.Class({
                 return this._windowClones[i];
             }
         }
-        return null;
+        return undefined;
     },
     
     hasWindowClone: function (metaWin) {
-        return this.getWindowClone(metaWin) != null;
+        return this.getWindowClone(metaWin) != undefined;
     },
 
     computeSize: function() {
@@ -381,36 +381,72 @@ const StatusButton = new Lang.Class({
     _init: function() {
         this.parent('preferences-desktop-remote-desktop');
         this._selectedWorkspaceIndex = 0;
+        this.isActivated = false;
         this._workspaceSwitcherComboChangedId = 0;
-        this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
-            Lang.bind(this, this._updateWorkspaceSwitcherCombo));
+        this._view = undefined;
         
         this._workspaceMonitorVisibilitySwitch = new PopupMenu.PopupSwitchMenuItem(_("Visible"));
         this.menu.addMenuItem(this._workspaceMonitorVisibilitySwitch);
         this._workspaceMonitorVisibilitySwitch.connect('toggled',
             Lang.bind(this, this._toggleWorkspaceMonitorVisibility));
         this._workspaceMonitorVisibilitySwitch.setToggleState(false);
+        
+        this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
+            Lang.bind(this, this._updateWorkspaceSwitcherCombo));
+        
+        //this._updateWorkspaceSwitcherCombo();
     },
     
     _switchWorkspace: function(menuItem, id) {
-        
+        this._selectedWorkspaceIndex = id;
+        //this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+        if (this.isActivated) {
+            this.installWorkspaceIndicator();
+        }
     },
     
     _updateWorkspaceSwitcherCombo: function() {
+        if (this._workspaceSwitcherComboChangedId > 0 && this._workspaceSwitcherCombo) {
+            this._workspaceSwitcherCombo.disconnect(this._workspaceSwitcherComboChangedId);
+        }
+        if (this._workspaceSwitcherCombo) {
+            this._workspaceSwitcherCombo.destroy();
+        }
+        this._workspaceSwitcherCombo = new PopupMenu.PopupComboBoxMenuItem({ style_class: 'status-chooser-combo' });
+        this.menu.addMenuItem(this._workspaceSwitcherCombo);
         
+        for (let i = 0; i < global.screen.n_workspaces; i++) {
+            let comboItem = new PopupMenu.PopupMenuItem('workspace '+i);
+            this._workspaceSwitcherCombo.addMenuItem(comboItem, i);
+            this._workspaceSwitcherCombo.setItemVisible(i, true);
+        }
+        this._workspaceSwitcherComboChangedId = this._workspaceSwitcherCombo.connect('active-item-changed',
+            Lang.bind(this, this._switchWorkspace));
+        this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
     },
 
     _toggleWorkspaceMonitorVisibility: function(item, event) {
-        if (this._view && !event) {
+        this.isActivated = event;
+        if (this.isActivated) {
+            this.installWorkspaceIndicator();
+        } else {
+            this.uninstallWorkspaceIndicator();
+        }
+    },
+    
+    installWorkspaceIndicator: function() {
+        this.uninstallWorkspaceIndicator();
+        let metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
+        this._view = new WorkspaceMonitor(metaWorkspace, AFFECTS_STRUTS);
+        Main.layoutManager.addChrome(this._view.actor, {affectsStruts: AFFECTS_STRUTS});
+        this._view.show();
+    },
+    
+    uninstallWorkspaceIndicator: function() {
+        if (this._view) {
             this._view.hide();
             this._view.destroy();
-            this._view = null;
-        } else if (!this._view && event) {
-            let metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
-            this._view = new WorkspaceMonitor(metaWorkspace, AFFECTS_STRUTS);
-            Main.layoutManager.addChrome(this._view.actor, {affectsStruts: AFFECTS_STRUTS});
-//            Main.uiGroup.add_actor(this._view.actor);
-            this._view.show();
+            this._view = undefined;
         }
     }
     
@@ -426,11 +462,11 @@ function init() {
 function enable() {
     if (!status_button) {
         status_button = new StatusButton();
-        Main.panel.addToStatusArea('activator_button', status_button);
+        Main.panel.addToStatusArea('workspace_monitor_button', status_button);
     }
 }
 
 function disable() {
     status_button.destroy();
-    status_button = null;
+    status_button = undefined;
 }
