@@ -385,11 +385,15 @@ const StatusButton = new Lang.Class({
         this._workspaceSwitcherComboChangedId = 0;
         this._view = undefined;
         
-        this._workspaceMonitorVisibilitySwitch = new PopupMenu.PopupSwitchMenuItem(_("Visible"));
+        // Switch visible / hidden
+        this._workspaceMonitorVisibilitySwitch = new PopupMenu.PopupSwitchMenuItem(_("Workspace Monitor"));
         this.menu.addMenuItem(this._workspaceMonitorVisibilitySwitch);
         this._workspaceMonitorVisibilitySwitch.connect('toggled',
             Lang.bind(this, this._toggleWorkspaceMonitorVisibility));
         this._workspaceMonitorVisibilitySwitch.setToggleState(false);
+        
+        // Separator
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
             Lang.bind(this, this._updateWorkspaceSwitcherCombo));
