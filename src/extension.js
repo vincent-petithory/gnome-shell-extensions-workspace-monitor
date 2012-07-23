@@ -191,11 +191,24 @@ const WorkspaceMonitor = new Lang.Class({
         }
     },
     
+    _addEmptyWindowIfNeeded: function() {
+        if (global.get_window_actors().filter(this._isWindowInteresting, this).length == 0) {
+            let monitor = Main.layoutManager.primaryMonitor;
+            this._emptyWindowActor = Meta.BackgroundActor.new_for_screen(global.screen);
+            let s = Math.min(THUMBNAIL_MAX_SIZE/monitor.width, THUMBNAIL_MAX_SIZE/monitor.height);
+            this._emptyWindowActor.set_scale(s, s);
+            this._emptyWindowActor.set_size(s*monitor.width, s*monitor.height);
+            
+            this._box.add_actor(this._emptyWindowActor);
+        }
+    },
+    
     _windowRemoved: function (metaWorkspace, metaWin) {
         if (!this.request_display) {
             return;
         }
         this._doRemoveWindow(metaWin);
+        this._addEmptyWindowIfNeeded();
         this.computeSize();
         this.position();
     },
@@ -213,6 +226,9 @@ const WorkspaceMonitor = new Lang.Class({
     },
 
     _doAddWindow: function (realWin) {
+        if (this._emptyWindowActor) {
+            this._box.remove_actor(this._emptyWindowActor);
+        }
         let windowClone = new WindowClone(realWin, this._maxSize);
         this._windowClones.push(windowClone);
         this._box.add_actor(windowClone.actor);
@@ -248,10 +264,15 @@ const WorkspaceMonitor = new Lang.Class({
     computeSize: function() {
         let windows = global.get_window_actors().filter(this._isWindowInteresting, this);
         
+        let numWindows = windows.length;
+        if (numWindows == 0) {
+            numWindows = 1;
+        }
+        
         let monitor = Main.layoutManager.primaryMonitor;
         this._marginTop = monitor.y + Main.panel.actor.height + 10;
         this._marginBottom = 60;
-        let maxHeight = (monitor.height - (this._marginTop + this._marginBottom) ) / windows.length;
+        let maxHeight = (monitor.height - (this._marginTop + this._marginBottom) ) / numWindows;
         this._maxSize = Math.min(THUMBNAIL_MAX_SIZE, maxHeight);
     },
     
@@ -278,8 +299,6 @@ const WorkspaceMonitor = new Lang.Class({
              });
         
         }
-        
-        
     },
 
     // Tests if @win is interesting
@@ -319,6 +338,7 @@ const WorkspaceMonitor = new Lang.Class({
         for (let i = 0; i < windows.length; i++) {
             this._doAddWindow(windows[i], this._maxSize);
         }
+        this._addEmptyWindowIfNeeded();
     },
 
     hide: function() {
