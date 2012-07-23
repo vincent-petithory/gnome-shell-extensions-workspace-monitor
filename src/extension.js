@@ -30,15 +30,10 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Gtk = imports.gi.Gtk;
 const Overview = imports.ui.overview;
-
-// TODO I18N
+const Gettext = imports.gettext.domain('gnome-shell-extensions');
+const _ = Gettext.gettext;
 
 // TODO PREFS : THUMBNAIL_MAX_SIZE + affectsStruts
-
-function _(s) {
-    return s;
-}
-
 
 let THUMBNAIL_MAX_SIZE = Main.layoutManager.primaryMonitor.width*0.2;
 let AFFECTS_STRUTS = true;
@@ -49,7 +44,6 @@ const WindowClone = new Lang.Class({
     _init: function(realWindow, maxSize) {
         this.realWindow = realWindow;
         this.metaWindow = realWindow.meta_window;
-//        this.metaWindow._delegate = this;
         
         this.actor = new St.Bin({ reactive: true });
         
@@ -59,10 +53,6 @@ const WindowClone = new Lang.Class({
             reactive: false
         });
         
-//        // Destroy the clone upon source destruction
-//        this._windowClone.source.connect('destroy', Lang.bind(this, function() {
-//            this._windowClone.destroy();
-//        }));
         this._realWindowDestroyId = this.realWindow.connect('destroy',
             Lang.bind(this, this._disconnectRealWindowSignals));
         this._realWindowSizeChangedId = this.realWindow.connect('size-changed',
@@ -78,7 +68,10 @@ const WindowClone = new Lang.Class({
         let [width, height] = this._texture.get_size();
         let scale = Math.min(1.0, maxSize/width, maxSize/height);
         this._windowClone.set_size(width*scale, height*scale);
-        this.actor.set_size(maxSize, maxSize);
+        // Normal view
+//        this.actor.set_size(maxSize, maxSize);
+        // Compact view
+        this.actor.set_size(width*scale, height*scale + 10);
         this._maxSize = maxSize;
     },
     
@@ -129,12 +122,14 @@ const WorkspaceMonitor = new Lang.Class({
         
         // We use the style class of the workspace thumbnails background
         // seen in the overview, for style consistency.
-        this.actor = new St.Bin({ reactive: false, style_class: 'workspace-thumbnails-background' });
+        this.actor = new St.Bin({ reactive: false, style_class: 'workspace-monitor' });
+        let container = new St.Bin({ reactive: false, style_class: 'workspace-thumbnails-background' });
         this._box = new St.BoxLayout({ name: 'workspace-view',
                                        vertical: true,
                                        reactive: false });
         this._box._delegate = this;
-        this.actor.add_actor(this._box);
+        container.add_actor(this._box);
+        this.actor.add_actor(container);
         
         this.computeSize();
     },
@@ -195,7 +190,7 @@ const WorkspaceMonitor = new Lang.Class({
         if (global.get_window_actors().filter(this._isWindowInteresting, this).length == 0) {
             let monitor = Main.layoutManager.primaryMonitor;
             this._emptyWindowActor = Meta.BackgroundActor.new_for_screen(global.screen);
-            let s = Math.min(THUMBNAIL_MAX_SIZE/monitor.width, THUMBNAIL_MAX_SIZE/monitor.height);
+            let s = Math.min(1.0, THUMBNAIL_MAX_SIZE/monitor.width, THUMBNAIL_MAX_SIZE/monitor.height);
             this._emptyWindowActor.set_scale(s, s);
             this._emptyWindowActor.set_size(s*monitor.width, s*monitor.height);
             
