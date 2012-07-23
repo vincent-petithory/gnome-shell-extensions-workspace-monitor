@@ -35,8 +35,6 @@ const Overview = imports.ui.overview;
 
 // TODO PREFS : THUMBNAIL_MAX_SIZE + affectsStruts
 
-// TODO Handle workspace destroyed
-
 function _(s) {
     return s;
 }
@@ -134,8 +132,7 @@ const WorkspaceMonitor = new Lang.Class({
         this.actor = new St.Bin({ reactive: false, style_class: 'workspace-thumbnails-background' });
         this._box = new St.BoxLayout({ name: 'workspace-view',
                                        vertical: true,
-                                       reactive: false/*,
-                                       clip_to_allocation: true*/ });
+                                       reactive: false });
         this._box._delegate = this;
         this.actor.add_actor(this._box);
         
@@ -396,16 +393,37 @@ const StatusButton = new Lang.Class({
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
-            Lang.bind(this, this._updateWorkspaceSwitcherCombo));
-        
-        //this._updateWorkspaceSwitcherCombo();
+            Lang.bind(this, this._numWorkspacesChanged));
     },
     
     _switchWorkspace: function(menuItem, id) {
         this._selectedWorkspaceIndex = id;
         //this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
         if (this.isActivated) {
+            this.uninstallWorkspaceIndicator();
             this.installWorkspaceIndicator();
+        }
+    },
+    
+    _numWorkspacesChanged: function() {
+        let ourWorkspaceChanged = false;
+        if (this._selectedWorkspaceIndex >= global.screen.n_workspaces - 1) {
+            this._selectedWorkspaceIndex = global.screen.n_workspaces - 1;
+            ourWorkspaceChanged = true;
+        }
+        
+        if (this._metaWorkspace) {
+            if (this._metaWorkspace != global.screen.get_workspace_by_index(this._selectedWorkspaceIndex)) {
+                ourWorkspaceChanged = true;
+            }
+        }
+        
+        this._updateWorkspaceSwitcherCombo();
+        if (ourWorkspaceChanged) {
+            this.uninstallWorkspaceIndicator();
+            if (this.isActivated) {
+                this.installWorkspaceIndicator();
+            }
         }
     },
     
@@ -420,7 +438,7 @@ const StatusButton = new Lang.Class({
         this.menu.addMenuItem(this._workspaceSwitcherCombo);
         
         for (let i = 0; i < global.screen.n_workspaces; i++) {
-            let comboItem = new PopupMenu.PopupMenuItem('workspace '+i);
+            let comboItem = new PopupMenu.PopupMenuItem(_("Workspace")+" "+(i+1).toString());
             this._workspaceSwitcherCombo.addMenuItem(comboItem, i);
             this._workspaceSwitcherCombo.setItemVisible(i, true);
         }
@@ -432,6 +450,7 @@ const StatusButton = new Lang.Class({
     _toggleWorkspaceMonitorVisibility: function(item, event) {
         this.isActivated = event;
         if (this.isActivated) {
+            this.uninstallWorkspaceIndicator();
             this.installWorkspaceIndicator();
         } else {
             this.uninstallWorkspaceIndicator();
@@ -439,9 +458,8 @@ const StatusButton = new Lang.Class({
     },
     
     installWorkspaceIndicator: function() {
-        this.uninstallWorkspaceIndicator();
-        let metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
-        this._view = new WorkspaceMonitor(metaWorkspace, AFFECTS_STRUTS);
+        this._metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
+        this._view = new WorkspaceMonitor(this._metaWorkspace, AFFECTS_STRUTS);
         Main.layoutManager.addChrome(this._view.actor, {affectsStruts: AFFECTS_STRUTS});
         this._view.show();
     },
