@@ -1,17 +1,23 @@
-## Process this file with automake to produce Makefile.in
+include ../include.mk
 
-## Created by Anjuta
+dist_extension_DATA = extension.js lib.js prefs.js stylesheet.css 
+nodist_extension_DATA = metadata.json
 
-jsdir = $(prefix)/workspace-monitor@vincent.petithory.gmail.com
-js_DATA = \
-	metadata.json \
-	stylesheet.css
+EXTRA_DIST = metadata.json.in
+CLEANFILES = metadata.json
 
-js_SCRIPTS = extension.js
+gschemas_in = $(gschemabase).$(extensionname).gschema.xml.in
 
-EXTRA_DIST = $(js_DATA)
+@INTLTOOL_XML_NOMERGE_RULE@
 
-uninstall-local:
-	-rm -r $(jsdir)
+gsettings_SCHEMAS = $(gschemas_in:.xml.in=.xml)
 
+@GSETTINGS_RULES@
 
+CLEANFILES += $(gschemas_in:.xml.in=.valid) $(gsettings_SCHEMAS)
+EXTRA_DIST += $(gschemas_in)
+
+metadata.json: metadata.json.in $(top_builddir)/config.status
+	$(AM_V_GEN) sed -e "s|[@]UUID@|$(uuid)|" \
+        -e "s|[@]LOCALEDIR@|$(datadir)/locale|" \
+	    -e "s|[@]URL@|$(extensionurl)|" $< > $@

@@ -1,0 +1,10 @@
+{
+"uuid": "@UUID@",
+"name": "Workspace Monitor",
+"description": "A dock-style monitor to view the windows of a workspace.",
+"original-author": "Vincent Petithory <vincent.petithory@gmail.com>",
+"shell-version": ["3.4"],
+"url": "@URL@",
+"locale": "@LOCALEDIR@"
+}
+

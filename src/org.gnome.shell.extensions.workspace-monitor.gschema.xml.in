@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnome-shell-extensions-workspace-monitor">
+    <enum id="org.gnome.shell.extensions.workspace-monitor.display-mode">
+        <value value="0" nick="dock"/>
+        <value value="1" nick="overlay"/>
+    </enum>
+  <schema path="/org/gnome/shell/extensions/workspace-monitor/" id="org.gnome.shell.extensions.workspace-monitor">
+    <key name="display-mode" enum="org.gnome.shell.extensions.workspace-monitor.display-mode">
+      <default>'dock'</default>
+      <summary>Display mode of the panel</summary>
+      <description>The behavior of the workspace monitor panel:
+      dock: will reserve space like gnome shell's top bar.
+      overlay: will appear above other windows</description>
+    </key>
+    <key name="thumbnail-max-size" type="i">
+      <default>250</default>
+      <summary>The maximum size a window thumbnail can have.</summary>
+      <description>The maximum size a window thumbnail can have.</description>
+    </key>
+  </schema>
+</schemalist>

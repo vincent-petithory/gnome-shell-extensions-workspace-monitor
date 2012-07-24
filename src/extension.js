@@ -30,13 +30,13 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Gtk = imports.gi.Gtk;
 const Overview = imports.ui.overview;
-const Gettext = imports.gettext.domain('gnome-shell-extensions');
+
+const Gettext = imports.gettext.domain('gnome-shell-extensions-workspace-monitor');
 const _ = Gettext.gettext;
 
-// TODO PREFS : THUMBNAIL_MAX_SIZE + affectsStruts
-
-let THUMBNAIL_MAX_SIZE = Main.layoutManager.primaryMonitor.width*0.2;
-let AFFECTS_STRUTS = true;
+let extension = imports.misc.extensionUtils.getCurrentExtension();
+let Lib = extension.imports.lib;
+let settings;
 
 const WindowClone = new Lang.Class({
     Name: 'WindowClone',
@@ -45,7 +45,7 @@ const WindowClone = new Lang.Class({
         this.realWindow = realWindow;
         this.metaWindow = realWindow.meta_window;
         
-        this.actor = new St.Bin({ reactive: true });
+        this.actor = new St.Bin({reactive: true});
         
         this._texture = this.realWindow.get_texture();
         this._windowClone = new Clutter.Clone({
@@ -69,9 +69,9 @@ const WindowClone = new Lang.Class({
         let scale = Math.min(1.0, maxSize/width, maxSize/height);
         this._windowClone.set_size(width*scale, height*scale);
         // Normal view
-//        this.actor.set_size(maxSize, maxSize);
+        this.actor.set_size(maxSize, maxSize);
         // Compact view
-        this.actor.set_size(width*scale, height*scale + 10);
+        //this.actor.set_size(width*scale, height*scale + 3);
         this._maxSize = maxSize;
     },
     
@@ -122,14 +122,14 @@ const WorkspaceMonitor = new Lang.Class({
         
         // We use the style class of the workspace thumbnails background
         // seen in the overview, for style consistency.
-        this.actor = new St.Bin({ reactive: false, style_class: 'workspace-monitor' });
-        let container = new St.Bin({ reactive: false, style_class: 'workspace-thumbnails-background' });
-        this._box = new St.BoxLayout({ name: 'workspace-view',
+        this.actor = new St.Bin({reactive: false, style_class: 'workspace-monitor'});
+        this.container = new St.Bin({reactive: false, style_class: 'workspace-thumbnails-background'});
+        this._box = new St.BoxLayout({name: 'workspace-view',
                                        vertical: true,
-                                       reactive: false });
+                                       reactive: false});
         this._box._delegate = this;
-        container.add_actor(this._box);
-        this.actor.add_actor(container);
+        this.container.add_actor(this._box);
+        this.actor.add_actor(this.container);
         
         this.computeSize();
     },
@@ -188,9 +188,10 @@ const WorkspaceMonitor = new Lang.Class({
     
     _addEmptyWindowIfNeeded: function() {
         if (global.get_window_actors().filter(this._isWindowInteresting, this).length == 0) {
+            let thumbnailMaxSize = settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY);
             let monitor = Main.layoutManager.primaryMonitor;
             this._emptyWindowActor = Meta.BackgroundActor.new_for_screen(global.screen);
-            let s = Math.min(1.0, THUMBNAIL_MAX_SIZE/monitor.width, THUMBNAIL_MAX_SIZE/monitor.height);
+            let s = Math.min(1.0, thumbnailMaxSize/monitor.width, thumbnailMaxSize/monitor.height);
             this._emptyWindowActor.set_scale(s, s);
             this._emptyWindowActor.set_size(s*monitor.width, s*monitor.height);
             
@@ -268,17 +269,22 @@ const WorkspaceMonitor = new Lang.Class({
         this._marginTop = monitor.y + Main.panel.actor.height + 10;
         this._marginBottom = 60;
         let maxHeight = (monitor.height - (this._marginTop + this._marginBottom) ) / numWindows;
-        this._maxSize = Math.min(THUMBNAIL_MAX_SIZE, maxHeight);
+        this._maxSize = Math.min(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), maxHeight);
     },
     
     position: function() {
         for (let i = 0; i < this._windowClones.length; i++) {
             this._windowClones[i].adjust_size(this._maxSize);
         }
-        
+        let padding;
+        try {
+            padding = this.container.get_theme_node().get_length('padding');
+        } catch (e) {
+            padding = 0;
+        }
         let monitor = Main.layoutManager.primaryMonitor;
         this.actor.y = this._marginTop;
-        let x = monitor.x + monitor.width - this._maxSize;
+        let x = monitor.x + monitor.width - this._maxSize - padding*2;
         // Disable this tween along the X-Axis when we are affecting struts,
         // or the animation will be very laggy.
         if (this.affectsStruts) {
@@ -288,7 +294,8 @@ const WorkspaceMonitor = new Lang.Class({
                 this.actor.x = monitor.x + monitor.width - 10;
             }
             Tweener.addTween(this.actor,
-             { x: x,
+             {
+               x: x,
                transition: 'easeOutQuad',
                time: Overview.ANIMATION_TIME
              });
@@ -400,20 +407,42 @@ const StatusButton = new Lang.Class({
         // Switch visible / hidden
         this._workspaceMonitorVisibilitySwitch = new PopupMenu.PopupSwitchMenuItem(_("Workspace Monitor"));
         this.menu.addMenuItem(this._workspaceMonitorVisibilitySwitch);
-        this._workspaceMonitorVisibilitySwitch.connect('toggled',
+        this._workspaceMonitorVisibilitySwitchId = this._workspaceMonitorVisibilitySwitch.connect('toggled',
             Lang.bind(this, this._toggleWorkspaceMonitorVisibility));
         this._workspaceMonitorVisibilitySwitch.setToggleState(false);
         
         // Separator
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // Settings events
+        this._settingThumbnailMaxSizeChangedId = settings.connect("changed::"+Lib.Settings.THUMBNAIL_MAX_SIZE_KEY,
+            Lang.bind(this, this._onThumbnailMaxSizeChanged));
+            
+        this._settingDisplayModeChangedId = settings.connect("changed::"+Lib.Settings.DISPLAY_MODE_KEY,
+            Lang.bind(this, this._onDisplayModeChanged));
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
             Lang.bind(this, this._numWorkspacesChanged));
+        
+        this._updateWorkspaceSwitcherCombo();
+    },
+    
+    _onThumbnailMaxSizeChanged: function () {
+        if (this.isActivated) {
+            this.uninstallWorkspaceIndicator();
+            this.installWorkspaceIndicator();
+        }
+    },
+    
+    _onDisplayModeChanged: function () {
+        if (this.isActivated) {
+            this.uninstallWorkspaceIndicator();
+            this.installWorkspaceIndicator();
+        }
     },
     
     _switchWorkspace: function(menuItem, id) {
         this._selectedWorkspaceIndex = id;
-        //this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
         if (this.isActivated) {
             this.uninstallWorkspaceIndicator();
             this.installWorkspaceIndicator();
@@ -449,7 +478,7 @@ const StatusButton = new Lang.Class({
         if (this._workspaceSwitcherCombo) {
             this._workspaceSwitcherCombo.destroy();
         }
-        this._workspaceSwitcherCombo = new PopupMenu.PopupComboBoxMenuItem({ style_class: 'status-chooser-combo' });
+        this._workspaceSwitcherCombo = new PopupMenu.PopupComboBoxMenuItem({style_class: 'status-chooser-combo'});
         this.menu.addMenuItem(this._workspaceSwitcherCombo);
         
         for (let i = 0; i < global.screen.n_workspaces; i++) {
@@ -473,9 +502,10 @@ const StatusButton = new Lang.Class({
     },
     
     installWorkspaceIndicator: function() {
+        let affectsStruts = settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock';
         this._metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
-        this._view = new WorkspaceMonitor(this._metaWorkspace, AFFECTS_STRUTS);
-        Main.layoutManager.addChrome(this._view.actor, {affectsStruts: AFFECTS_STRUTS});
+        this._view = new WorkspaceMonitor(this._metaWorkspace, affectsStruts);
+        Main.layoutManager.addChrome(this._view.actor, {affectsStruts: affectsStruts});
         this._view.show();
     },
     
@@ -485,6 +515,30 @@ const StatusButton = new Lang.Class({
             this._view.destroy();
             this._view = undefined;
         }
+    },
+    
+    destroy: function() {
+        if (this._nWorkspacesChangedId > 0) {
+            global.disconnect(this._nWorkspacesChangedId);
+            this._nWorkspacesChangedId = 0;
+        }
+        if (this._workspaceMonitorVisibilitySwitchId > 0 && this._workspaceMonitorVisibilitySwitch) {
+            this._workspaceMonitorVisibilitySwitch.disconnect(this._workspaceMonitorVisibilitySwitchId);
+            this._workspaceMonitorVisibilitySwitchId = 0;
+        }
+        if (this._workspaceSwitcherComboChangedId > 0 && this._workspaceSwitcherCombo) {
+            this._workspaceSwitcherCombo.disconnect(this._workspaceSwitcherComboChangedId);
+            this._workspaceSwitcherComboChangedId = 0;
+        }
+        if (this._settingThumbnailMaxSizeChangedId > 0) {
+            settings.disconnect(this._settingThumbnailMaxSizeChangedId);
+            this._settingThumbnailMaxSizeChangedId = 0;
+        }
+        if (this._settingDisplayModeChangedId > 0) {
+            settings.disconnect(this._settingDisplayModeChangedId);
+            this._settingDisplayModeChangedId = 0;
+        }
+        this.actor.destroy();
     }
     
 });
@@ -493,7 +547,8 @@ const StatusButton = new Lang.Class({
 let status_button;
 
 function init() {
-    // Nothing
+    Lib.initTranslations(extension);
+    settings = Lib.getSettings(extension, 'workspace-monitor');
 }
 
 function enable() {
@@ -507,3 +562,4 @@ function disable() {
     status_button.destroy();
     status_button = undefined;
 }
+

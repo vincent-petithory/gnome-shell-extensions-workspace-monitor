@@ -1,8 +1,0 @@
-{
-    "shell-version": ["3.4"], 
-    "uuid": "workspace-monitor@vincent.petithory.gmail.com", 
-    "name": "Workspace Monitor", 
-    "original-author": "Vincent Petithory",
-    "url": "http://github.com/vincent-petithory", 
-    "description": "A dock-style monitor to view the windows of a workspace."
-}
