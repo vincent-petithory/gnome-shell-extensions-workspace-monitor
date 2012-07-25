@@ -447,6 +447,9 @@ const StatusButton = new Lang.Class({
         if (this.isActivated) {
             this.uninstallWorkspaceIndicator();
             this.installWorkspaceIndicator();
+            // Close the whole menu right away
+            // when the user selected another workspace.
+            this.menu.close();
         }
     },
     
