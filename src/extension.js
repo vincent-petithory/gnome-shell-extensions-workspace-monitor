@@ -31,11 +31,12 @@ const PopupMenu = imports.ui.popupMenu;
 const Gtk = imports.gi.Gtk;
 const Overview = imports.ui.overview;
 
-const Gettext = imports.gettext.domain('gnome-shell-extensions-workspace-monitor');
-const _ = Gettext.gettext;
-
 let extension = imports.misc.extensionUtils.getCurrentExtension();
 let Lib = extension.imports.lib;
+
+const Gettext = imports.gettext.domain(Lib.GETTEXT_DOMAIN);
+const _ = Gettext.gettext;
+
 let settings;
 
 const WindowClone = new Lang.Class({

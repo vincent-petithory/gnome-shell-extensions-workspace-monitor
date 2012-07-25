@@ -20,11 +20,11 @@
 const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
 
-const Gettext = imports.gettext.domain('gnome-shell-extensions-workspace-monitor');
-const _ = Gettext.gettext;
-
 let extension = imports.misc.extensionUtils.getCurrentExtension();
 let Lib = extension.imports.lib;
+
+const Gettext = imports.gettext.domain(Lib.GETTEXT_DOMAIN);
+const _ = Gettext.gettext;
 
 let settings;
 
@@ -33,7 +33,7 @@ function _createThumbnailMaxSizeSetting() {
     
     let container = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, margin_top: 5, margin_bottom: 5});
 
-    let settingLabel = new Gtk.Label({label: "<b>"+_('Window thumbnail maximum size')+"</b>",
+    let settingLabel = new Gtk.Label({label: "<b>"+_("Window thumbnail maximum size")+"</b>",
                                        use_markup: true,
                                        xalign: 0});
     

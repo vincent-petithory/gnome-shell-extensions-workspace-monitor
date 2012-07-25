@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-25 11:24+0200\n"
+"POT-Creation-Date: 2012-07-25 11:49+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,12 +18,16 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. Switch visible / hidden
-#: ../src/extension.js:408
+#: ../src/extension.js:409
 msgid "Workspace Monitor"
 msgstr ""
 
-#: ../src/extension.js:485
+#: ../src/extension.js:486
 msgid "Workspace"
+msgstr ""
+
+#: ../src/prefs.js:36
+msgid "Window thumbnail maximum size"
 msgstr ""
 
 #: ../src/prefs.js:70
