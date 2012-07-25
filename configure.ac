@@ -1,6 +1,6 @@
 AC_PREREQ(2.63)
 dnl be carefull, the version needs to be in sync with your gnome shell version
-AC_INIT([gnome-shell-extensions-workspace-monitor],[0.1],[https://github.com/vincent-petithory/gnome-shell-extensions-workspace-monitor])
+AC_INIT([gnome-shell-extensions-workspace-monitor],[3],[https://github.com/vincent-petithory/gnome-shell-extensions-workspace-monitor])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([config])

@@ -1,21 +1,24 @@
 /* -*- mode: js2; js2-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * lib.js
- * Copyright (C) 2012 Vincent Petithory <vincent.petithory@gmail.com>
+ * This file is part of workspace-monitor
  *
- * workspace-monitor is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or
+ * Copyright (C) 2012 - Vincent Petithory <vincent.petithory@gmail.com>
+ *
+ * workspace-monitor is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * workspace-monitor is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ * workspace-monitor is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along
- * with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with workspace-monitor. If not, see <http://www.gnu.org/licenses/>.
  */
+
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;

@@ -5,6 +5,7 @@
 "original-author": "Vincent Petithory <vincent.petithory@gmail.com>",
 "shell-version": ["3.4"],
 "url": "@URL@",
-"locale": "@LOCALEDIR@"
+"locale": "@LOCALEDIR@",
+"version": @VERSION@
 }
 
