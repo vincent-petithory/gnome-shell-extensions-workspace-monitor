@@ -539,7 +539,8 @@ const StatusButton = new Lang.Class({
             settings.disconnect(this._settingDisplayModeChangedId);
             this._settingDisplayModeChangedId = 0;
         }
-        this.actor.destroy();
+        this.uninstallWorkspaceIndicator();
+        PanelMenu.SystemStatusButton.prototype.destroy.call(this);
     }
     
 });
