@@ -1,3 +1,6 @@
 * Add a preference to anchor the panel on the left or right
-* Add a preference to track the active workspace (usage as a window list)
-
+-> Add a preference to track the active workspace (usage as a window list)
+* Intellihide in overlay mode
+# mousewheel scroll changes workspace
+* keyboard shortcut to toggle the monitor
+* Compact layout

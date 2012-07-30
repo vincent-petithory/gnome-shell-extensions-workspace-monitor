@@ -21,6 +21,7 @@
 
 
 const Gtk = imports.gi.Gtk;
+const Gio = imports.gi.Gio;
 const Gdk = imports.gi.Gdk;
 
 let extension = imports.misc.extensionUtils.getCurrentExtension();
@@ -106,6 +107,27 @@ function _createDisplayModeSetting() {
     return container;
 }
 
+function _createUseMouseWheelSetting() {
+    let container = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, margin_top: 5, margin_bottom: 5});
+
+    let settingLabel = new Gtk.Label({label: "<b>"+_("Workspace switching")+"</b>",
+                                use_markup: true,
+                                xalign: 0});
+    
+    let vbox = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL,
+                             margin_left: 20, margin_top: 5});
+    
+    let useMouseWheelItem = new Gtk.CheckButton({label: _("Use the mouse wheel to switch of workspace")});
+    settings.bind(Lib.Settings.USE_MOUSE_WHEEL_KEY, useMouseWheelItem, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+    vbox.add(useMouseWheelItem);
+
+    container.add(settingLabel);
+    container.add(vbox);
+
+    return container;
+}
+
 /*
    Shell-extensions handlers
 */
@@ -124,6 +146,9 @@ function buildPrefsWidget() {
     frame.add(box);
 
     box = _createDisplayModeSetting();
+    frame.add(box);
+    
+    box = _createUseMouseWheelSetting();
     frame.add(box);
 
     frame.show_all();

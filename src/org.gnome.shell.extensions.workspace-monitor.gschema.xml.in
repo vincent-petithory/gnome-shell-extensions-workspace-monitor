@@ -17,5 +17,10 @@
       <summary>The maximum size a window thumbnail can have.</summary>
       <description>The maximum size a window thumbnail can have.</description>
     </key>
+    <key name="use-mouse-wheel" type="b">
+      <default>true</default>
+      <summary>Use the mouse wheel to switch of workspace.</summary>
+      <description>Enables the workspace monitor to change of workspace using the mouse wheel.</description>
+    </key>
   </schema>
 </schemalist>

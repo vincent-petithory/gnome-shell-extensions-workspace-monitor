@@ -126,7 +126,7 @@ const WorkspaceMonitor = new Lang.Class({
         
         // We use the style class of the workspace thumbnails background
         // seen in the overview, for style consistency.
-        this.actor = new St.Bin({reactive: false, style_class: 'workspace-monitor'});
+        this.actor = new St.Bin({reactive: true, style_class: 'workspace-monitor'});
         this.container = new St.Bin({reactive: false, style_class: 'workspace-thumbnails-background'});
         this._box = new St.BoxLayout({name: 'workspace-view',
                                        vertical: true,
@@ -407,6 +407,7 @@ const StatusButton = new Lang.Class({
         this.isActivated = false;
         this._workspaceSwitcherComboChangedId = 0;
         this._view = undefined;
+        this._lastScrollEventTime = 0;
         
         // Switch visible / hidden
         this._workspaceMonitorVisibilitySwitch = new PopupMenu.PopupSwitchMenuItem(_("Workspace Monitor"));
@@ -424,6 +425,8 @@ const StatusButton = new Lang.Class({
             
         this._settingDisplayModeChangedId = settings.connect("changed::"+Lib.Settings.DISPLAY_MODE_KEY,
             Lang.bind(this, this._onDisplayModeChanged));
+        this._settingDisplayModeChangedId = settings.connect("changed::"+Lib.Settings.USE_MOUSE_WHEEL_KEY,
+            Lang.bind(this, this._onUseMouseWheelChanged));
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
             Lang.bind(this, this._numWorkspacesChanged));
@@ -432,26 +435,32 @@ const StatusButton = new Lang.Class({
     },
     
     _onThumbnailMaxSizeChanged: function () {
-        if (this.isActivated) {
-            this.uninstallWorkspaceIndicator();
-            this.installWorkspaceIndicator();
-        }
+        this.reset();
     },
     
     _onDisplayModeChanged: function () {
-        if (this.isActivated) {
-            this.uninstallWorkspaceIndicator();
-            this.installWorkspaceIndicator();
+        this.reset();
+    },
+    
+    _onUseMouseWheelChanged: function () {
+        if (this._viewScrollId > 0 && this._view) {
+            if (this._view.actor) {
+                this._view.actor.disconnect(this._viewScrollId);
+            }
+            this._viewScrollId = 0;
+        }
+        if (settings.get_boolean(Lib.Settings.USE_MOUSE_WHEEL_KEY)) {
+            this._viewScrollId = this._view.actor.connect('scroll-event',
+                Lang.bind(this, this._onViewScrollEvent));
         }
     },
     
     _switchWorkspace: function(menuItem, id) {
         this._selectedWorkspaceIndex = id;
+        this.reset();
+        // Close the whole menu right away
+        // when the user selected another workspace.
         if (this.isActivated) {
-            this.uninstallWorkspaceIndicator();
-            this.installWorkspaceIndicator();
-            // Close the whole menu right away
-            // when the user selected another workspace.
             this.menu.close();
         }
     },
@@ -508,10 +517,49 @@ const StatusButton = new Lang.Class({
         }
     },
     
+    _onViewScrollEvent: function(actor, event) {
+        // We want to ignore events that are incoming too fast, or it will 
+        // eventually crash the shell if the user scrolls like crazy.
+        let ignoreEvent = (event.get_time() - this._lastScrollEventTime) < 100;
+        this._lastScrollEventTime = event.get_time();
+        if (ignoreEvent) {
+            return;
+        }
+        let newSelectedWorkspaceIndex;
+        let direction = event.get_scroll_direction();
+        if (direction == Clutter.ScrollDirection.DOWN) {
+            newSelectedWorkspaceIndex = this._selectedWorkspaceIndex + 1;
+        } else if (direction == Clutter.ScrollDirection.UP) {
+            newSelectedWorkspaceIndex = this._selectedWorkspaceIndex - 1;
+        }
+        newSelectedWorkspaceIndex = Math.min(
+            Math.max(newSelectedWorkspaceIndex, 0),
+            global.screen.n_workspaces - 1
+        );
+        if (this._selectedWorkspaceIndex == newSelectedWorkspaceIndex) {
+            return;
+        }
+        this._selectedWorkspaceIndex = newSelectedWorkspaceIndex;
+        this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+        this.reset();
+    },
+    
+    reset: function() {
+        if (this.isActivated) {
+            this.uninstallWorkspaceIndicator();
+            this.installWorkspaceIndicator();
+        }
+    },
+    
     installWorkspaceIndicator: function() {
         let affectsStruts = settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock';
         this._metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
         this._view = new WorkspaceMonitor(this._metaWorkspace, affectsStruts);
+        
+        if (settings.get_boolean(Lib.Settings.USE_MOUSE_WHEEL_KEY)) {
+            this._viewScrollId = this._view.actor.connect('scroll-event',
+                Lang.bind(this, this._onViewScrollEvent));
+        }
         Main.layoutManager.addChrome(this._view.actor, {affectsStruts: affectsStruts});
         this._view.show();
     },
@@ -544,6 +592,16 @@ const StatusButton = new Lang.Class({
         if (this._settingDisplayModeChangedId > 0) {
             settings.disconnect(this._settingDisplayModeChangedId);
             this._settingDisplayModeChangedId = 0;
+        }
+        if (this._settingUseMouseWheelChangedId > 0) {
+            settings.disconnect(this._settingUseMouseWheelChangedId);
+            this._settingUseMouseWheelChangedId = 0;
+        }
+        if (this._viewScrollId > 0 && this._view) {
+            if (this._view.actor) {
+                this._view.actor.disconnect(this._viewScrollId);
+            }
+            this._viewScrollId = 0;
         }
         this.uninstallWorkspaceIndicator();
         PanelMenu.SystemStatusButton.prototype.destroy.call(this);

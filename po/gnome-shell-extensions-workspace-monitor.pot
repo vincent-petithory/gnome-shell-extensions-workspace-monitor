@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-25 11:49+0200\n"
+"POT-Creation-Date: 2012-07-30 12:07+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,26 +18,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. Switch visible / hidden
-#: ../src/extension.js:409
+#: ../src/extension.js:413
 msgid "Workspace Monitor"
 msgstr ""
 
-#: ../src/extension.js:486
+#: ../src/extension.js:509
 msgid "Workspace"
 msgstr ""
 
-#: ../src/prefs.js:36
+#: ../src/prefs.js:40
 msgid "Window thumbnail maximum size"
 msgstr ""
 
-#: ../src/prefs.js:70
+#: ../src/prefs.js:74
 msgid "Display mode"
 msgstr ""
 
-#: ../src/prefs.js:77
+#: ../src/prefs.js:81
 msgid "Dock"
 msgstr ""
 
-#: ../src/prefs.js:78
+#: ../src/prefs.js:82
 msgid "Overlay"
+msgstr ""
+
+#: ../src/prefs.js:113
+msgid "Workspace switching"
+msgstr ""
+
+#: ../src/prefs.js:120
+msgid "Use the mouse wheel to switch of workspace"
 msgstr ""

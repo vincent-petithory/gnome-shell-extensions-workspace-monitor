@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-shell-extensions-workspace-monitor 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-25 11:49+0200\n"
-"PO-Revision-Date: 2012-07-25 11:50+0100\n"
-"Last-Translator: Vincent Petithory <vincent.petithory@gmail.com>\n"
+"POT-Creation-Date: 2012-07-30 12:07+0200\n"
+"PO-Revision-Date: 2012-07-30 12:07+0100\n"
+"Last-Translator: Vincent Petithory <v.petithory@elpev.com>\n"
 "Language-Team: French\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -18,26 +18,34 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #. Switch visible / hidden
-#: ../src/extension.js:409
+#: ../src/extension.js:413
 msgid "Workspace Monitor"
 msgstr "Moniteur d'espace de travail"
 
-#: ../src/extension.js:486
+#: ../src/extension.js:509
 msgid "Workspace"
 msgstr "Espace de travail"
 
-#: ../src/prefs.js:36
+#: ../src/prefs.js:40
 msgid "Window thumbnail maximum size"
 msgstr "Taille maximale des vignettes des fenêtres"
 
-#: ../src/prefs.js:70
+#: ../src/prefs.js:74
 msgid "Display mode"
 msgstr "Mode d'affichage"
 
-#: ../src/prefs.js:77
+#: ../src/prefs.js:81
 msgid "Dock"
 msgstr "Dock"
 
-#: ../src/prefs.js:78
+#: ../src/prefs.js:82
 msgid "Overlay"
 msgstr "Surcouche"
+
+#: ../src/prefs.js:113
+msgid "Workspace switching"
+msgstr "Changement d'espace de travail"
+
+#: ../src/prefs.js:120
+msgid "Use the mouse wheel to switch of workspace"
+msgstr "Utiliser la molette de la souris pour changer d'espace de travail"

@@ -28,7 +28,8 @@ const GETTEXT_DOMAIN = 'gnome-shell-extensions-workspace-monitor';
 const SETTINGS_SCHEMA = 'org.gnome.shell.extensions.workspace-monitor';
 const Settings = {
     DISPLAY_MODE_KEY: 'display-mode',
-    THUMBNAIL_MAX_SIZE_KEY: 'thumbnail-max-size'
+    THUMBNAIL_MAX_SIZE_KEY: 'thumbnail-max-size',
+    USE_MOUSE_WHEEL_KEY: 'use-mouse-wheel'
 }
 
 function getSettings(extension) {
