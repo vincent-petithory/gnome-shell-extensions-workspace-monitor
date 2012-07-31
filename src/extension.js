@@ -543,6 +543,8 @@ const StatusButton = new Lang.Class({
         this._workspaceSwitcherComboChangedId = this._workspaceSwitcherCombo.connect('active-item-changed',
             Lang.bind(this, this._switchWorkspace));
         this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+        // deactivate the combo if we are tracking the active workspace
+        this._workspaceSwitcherCombo.setSensitive( !settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE) );
     },
 
     _onWorkspaceMonitorVisibilitySwitchToggled: function(item, event) {
@@ -602,14 +604,14 @@ const StatusButton = new Lang.Class({
         }
         this._switchWorkspaceNotifyId = global.window_manager.connect('switch-workspace',
             Lang.bind(this, this._activeWorkspaceChanged));
-        // TODO if we track the active workspace, disable the combo box
+        this._workspaceSwitcherCombo.setSensitive(false);
     },
     
     _disconnectWorkspaceSwitchingEvents: function() {
         if (this._switchWorkspaceNotifyId > 0) {
             global.window_manager.disconnect(this._switchWorkspaceNotifyId);
         }
-        // TODO if we track the active workspace, enable the combo box
+        this._workspaceSwitcherCombo.setSensitive(true);
     },
     
     installWorkspaceIndicator: function() {
