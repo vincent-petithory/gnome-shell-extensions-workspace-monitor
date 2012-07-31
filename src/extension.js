@@ -429,7 +429,7 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._onThumbnailMaxSizeChanged));
         this._settingDisplayModeChangedId = settings.connect("changed::"+Lib.Settings.DISPLAY_MODE_KEY,
             Lang.bind(this, this._onDisplayModeChanged));
-        this._settingDisplayModeChangedId = settings.connect("changed::"+Lib.Settings.USE_MOUSE_WHEEL_KEY,
+        this._settingUseMouseWheelChangedId = settings.connect("changed::"+Lib.Settings.USE_MOUSE_WHEEL_KEY,
             Lang.bind(this, this._onUseMouseWheelChanged));
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
@@ -482,7 +482,7 @@ const StatusButton = new Lang.Class({
     
     _numWorkspacesChanged: function() {
         let ourWorkspaceChanged = false;
-        if (this._selectedWorkspaceIndex >= global.screen.n_workspaces - 1) {
+        if (this._selectedWorkspaceIndex > global.screen.n_workspaces - 1) {
             this._selectedWorkspaceIndex = global.screen.n_workspaces - 1;
             ourWorkspaceChanged = true;
         }
