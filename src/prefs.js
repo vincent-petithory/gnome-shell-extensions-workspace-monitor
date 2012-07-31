@@ -44,7 +44,7 @@ function _createThumbnailMaxSizeSetting() {
     let box = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL,
                              margin_left: 20, margin_top: 5});
     
-    let label = new Gtk.Label({label: _('Value:'), margin_right: 5});
+    let label = new Gtk.Label({label: _("Value:"), margin_right: 5, xalign: 0});
     
     let spinButton = new Gtk.SpinButton({adjustment:
         new Gtk.Adjustment ({
@@ -54,13 +54,9 @@ function _createThumbnailMaxSizeSetting() {
             step_increment: 1,
             page_increment: 10})
     });
+    settings.bind(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY, spinButton, 'value', Gio.SettingsBindFlags.DEFAULT);
     
-    
-    spinButton.connect ("value-changed", function(button) {
-        settings.set_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY, button.get_value());
-    });
-    
-    box.add(label);
+    box.pack_start(label, true, true, 0);
     box.add(spinButton);
     container.add(settingLabel);
     container.add(box);
@@ -107,24 +103,48 @@ function _createDisplayModeSetting() {
     return container;
 }
 
-function _createUseMouseWheelSetting() {
+function _createBehaviorSettings() {
     let container = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, margin_top: 5, margin_bottom: 5});
 
-    let settingLabel = new Gtk.Label({label: "<b>"+_("Workspace switching")+"</b>",
+    let settingLabel = new Gtk.Label({label: "<b>"+_("Behavior")+"</b>",
                                 use_markup: true,
                                 xalign: 0});
+    container.add(settingLabel);
     
     let vbox = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL,
                              margin_left: 20, margin_top: 5});
-    
-    let useMouseWheelItem = new Gtk.CheckButton({label: _("Use the mouse wheel to switch of workspace")});
-    settings.bind(Lib.Settings.USE_MOUSE_WHEEL_KEY, useMouseWheelItem, 'active', Gio.SettingsBindFlags.DEFAULT);
-
-    vbox.add(useMouseWheelItem);
-
-    container.add(settingLabel);
     container.add(vbox);
-
+    
+    // Mouse wheel setting
+    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
+    
+    let label = new Gtk.Label({label: _("Use the mouse wheel to switch of workspace:"), xalign: 0});
+    let useMouseWheelItem = new Gtk.Switch();
+    settings.bind(Lib.Settings.USE_MOUSE_WHEEL_KEY, useMouseWheelItem, 'active', Gio.SettingsBindFlags.DEFAULT);
+    
+    hbox.pack_start(label, true, true, 0);
+    hbox.add(useMouseWheelItem);
+    
+    vbox.add(hbox);
+    
+    // Keybinding setting
+    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
+    
+    let label = new Gtk.Label({label: _("Shortcut to show or hide the panel:"), xalign: 0});
+    let entry = new Gtk.Entry();
+    let keybindings = settings.get_strv(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING);
+    if (keybindings && keybindings.length > 0) {
+        entry.set_text(keybindings[0]);
+    }
+    entry.connect('changed', function() {
+         settings.set_strv(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING, [entry.get_text()]);
+    });
+    
+    hbox.pack_start(label, true, true, 0);
+    hbox.add(entry);
+    
+    vbox.add(hbox);
+    
     return container;
 }
 
@@ -147,8 +167,8 @@ function buildPrefsWidget() {
 
     box = _createDisplayModeSetting();
     frame.add(box);
-    
-    box = _createUseMouseWheelSetting();
+
+    box = _createBehaviorSettings();
     frame.add(box);
 
     frame.show_all();

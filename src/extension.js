@@ -413,16 +413,20 @@ const StatusButton = new Lang.Class({
         this._workspaceMonitorVisibilitySwitch = new PopupMenu.PopupSwitchMenuItem(_("Workspace Monitor"));
         this.menu.addMenuItem(this._workspaceMonitorVisibilitySwitch);
         this._workspaceMonitorVisibilitySwitchId = this._workspaceMonitorVisibilitySwitch.connect('toggled',
-            Lang.bind(this, this._toggleWorkspaceMonitorVisibility));
+            Lang.bind(this, this._onWorkspaceMonitorVisibilitySwitchToggled));
         this._workspaceMonitorVisibilitySwitch.setToggleState(false);
         
         // Separator
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
+        
+        global.display.add_keybinding(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING,
+            settings,
+            Meta.KeyBindingFlags.NONE,
+            Lang.bind(this, this._toggleWorkspaceMonitorVisibility));
+        
         // Settings events
         this._settingThumbnailMaxSizeChangedId = settings.connect("changed::"+Lib.Settings.THUMBNAIL_MAX_SIZE_KEY,
             Lang.bind(this, this._onThumbnailMaxSizeChanged));
-            
         this._settingDisplayModeChangedId = settings.connect("changed::"+Lib.Settings.DISPLAY_MODE_KEY,
             Lang.bind(this, this._onDisplayModeChanged));
         this._settingDisplayModeChangedId = settings.connect("changed::"+Lib.Settings.USE_MOUSE_WHEEL_KEY,
@@ -432,6 +436,17 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._numWorkspacesChanged));
         
         this._updateWorkspaceSwitcherCombo();
+    },
+    
+    _toggleWorkspaceMonitorVisibility: function() {
+        this.isActivated = !this.isActivated;
+        if (this.isActivated) {
+            this.uninstallWorkspaceIndicator();
+            this.installWorkspaceIndicator();
+        } else {
+            this.uninstallWorkspaceIndicator();
+        }
+        this._workspaceMonitorVisibilitySwitch.setToggleState(this.isActivated);
     },
     
     _onThumbnailMaxSizeChanged: function () {
@@ -507,7 +522,7 @@ const StatusButton = new Lang.Class({
         this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
     },
 
-    _toggleWorkspaceMonitorVisibility: function(item, event) {
+    _onWorkspaceMonitorVisibilitySwitchToggled: function(item, event) {
         this.isActivated = event;
         if (this.isActivated) {
             this.uninstallWorkspaceIndicator();

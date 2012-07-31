@@ -22,5 +22,10 @@
       <summary>Use the mouse wheel to switch of workspace.</summary>
       <description>Enables the workspace monitor to change of workspace using the mouse wheel.</description>
     </key>
+    <key name="toggle-workspace-monitor-panel-keybinding" type="as">
+      <default><![CDATA[['<Alt>F3']]]></default>
+      <summary>Shows or hides the workspace monitor panel.</summary>
+      <description>Shows or hides the workspace monitor panel.</description>
+    </key>
   </schema>
 </schemalist>
