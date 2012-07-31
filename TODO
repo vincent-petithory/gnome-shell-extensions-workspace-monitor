@@ -1,6 +1,6 @@
 * Add a preference to anchor the panel on the left or right
--> Add a preference to track the active workspace (usage as a window list)
 * Intellihide in overlay mode
-# mousewheel scroll changes workspace
-* keyboard shortcut to toggle the monitor
-* Compact layout
+* Compact layout + keep the panel at always the same size
+* Fix bug: a workspace monitor with a "desktop window" stays displayed below 
+  the genuine workspace monitor which displays the correct list of windows 
+  when the user "inserts" a workspace under certain circumstances (but unable to reproduce it)

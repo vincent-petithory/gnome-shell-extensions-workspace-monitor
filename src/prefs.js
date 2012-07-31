@@ -145,6 +145,18 @@ function _createBehaviorSettings() {
     
     vbox.add(hbox);
     
+    // track active workspace
+    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
+    
+    let label = new Gtk.Label({label: _("Always show the active workspace:"), xalign: 0});
+    let alwaysShowActiveWorkspace = new Gtk.Switch();
+    settings.bind(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE, alwaysShowActiveWorkspace, 'active', Gio.SettingsBindFlags.DEFAULT);
+    
+    hbox.pack_start(label, true, true, 0);
+    hbox.add(alwaysShowActiveWorkspace);
+    
+    vbox.add(hbox);
+    
     return container;
 }
 

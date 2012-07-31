@@ -30,6 +30,7 @@ const Settings = {
     DISPLAY_MODE_KEY: 'display-mode',
     THUMBNAIL_MAX_SIZE_KEY: 'thumbnail-max-size',
     USE_MOUSE_WHEEL_KEY: 'use-mouse-wheel',
+    ALWAYS_SHOW_ACTIVE_WORKSPACE: 'always-show-active-workspace',
     TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING: 'toggle-workspace-monitor-panel-keybinding'
 }
 

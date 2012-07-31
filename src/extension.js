@@ -431,11 +431,14 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._onDisplayModeChanged));
         this._settingUseMouseWheelChangedId = settings.connect("changed::"+Lib.Settings.USE_MOUSE_WHEEL_KEY,
             Lang.bind(this, this._onUseMouseWheelChanged));
+        this._settingAlwaysShowActiveWorkspaceChangedId = settings.connect("changed::"+Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE,
+            Lang.bind(this, this._onAlwaysShowActiveWorkspaceChanged));
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
             Lang.bind(this, this._numWorkspacesChanged));
         
         this._updateWorkspaceSwitcherCombo();
+        this._onAlwaysShowActiveWorkspaceChanged();
     },
     
     _toggleWorkspaceMonitorVisibility: function() {
@@ -470,6 +473,16 @@ const StatusButton = new Lang.Class({
         }
     },
     
+    _onAlwaysShowActiveWorkspaceChanged: function() {
+        this._disconnectWorkspaceSwitchingEvents();
+        if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+            this._connectWorkspaceSwitchingEvents();
+            this._selectedWorkspaceIndex = global.screen.get_active_workspace_index();
+            this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+            this.reset();
+        }
+    },
+    
     _switchWorkspace: function(menuItem, id) {
         this._selectedWorkspaceIndex = id;
         this.reset();
@@ -477,6 +490,16 @@ const StatusButton = new Lang.Class({
         // when the user selected another workspace.
         if (this.isActivated) {
             this.menu.close();
+        }
+    },
+    
+    _activeWorkspaceChanged: function(wm, from, to, direction) {
+        // This may have been triggered by our code (when scrolling, for example)
+        // so if the targeted and actual workspaces are the same, just exit
+        if (this._selectedWorkspaceIndex != to) {
+            this._selectedWorkspaceIndex = to;
+            this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+            this.reset();
         }
     },
     
@@ -557,6 +580,13 @@ const StatusButton = new Lang.Class({
         this._selectedWorkspaceIndex = newSelectedWorkspaceIndex;
         this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
         this.reset();
+        // If we track the active workspace, move to it upon changing the monitored workspace manually
+        if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+            let workspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
+            if (workspace) {
+                workspace.activate(global.get_current_time());
+            }
+        }
     },
     
     reset: function() {
@@ -564,6 +594,22 @@ const StatusButton = new Lang.Class({
             this.uninstallWorkspaceIndicator();
             this.installWorkspaceIndicator();
         }
+    },
+    
+    _connectWorkspaceSwitchingEvents: function() {
+        if (this._switchWorkspaceNotifyId > 0) {
+            global.window_manager.disconnect(this._switchWorkspaceNotifyId);
+        }
+        this._switchWorkspaceNotifyId = global.window_manager.connect('switch-workspace',
+            Lang.bind(this, this._activeWorkspaceChanged));
+        // TODO if we track the active workspace, disable the combo box
+    },
+    
+    _disconnectWorkspaceSwitchingEvents: function() {
+        if (this._switchWorkspaceNotifyId > 0) {
+            global.window_manager.disconnect(this._switchWorkspaceNotifyId);
+        }
+        // TODO if we track the active workspace, enable the combo box
     },
     
     installWorkspaceIndicator: function() {
@@ -575,12 +621,19 @@ const StatusButton = new Lang.Class({
             this._viewScrollId = this._view.actor.connect('scroll-event',
                 Lang.bind(this, this._onViewScrollEvent));
         }
+        
+        if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+            this._connectWorkspaceSwitchingEvents();
+        }
+        
         Main.layoutManager.addChrome(this._view.actor, {affectsStruts: affectsStruts});
         this._view.show();
+        
     },
     
     uninstallWorkspaceIndicator: function() {
         if (this._view) {
+            this._disconnectWorkspaceSwitchingEvents();
             this._view.hide();
             this._view.destroy();
             this._view = undefined;
@@ -611,6 +664,10 @@ const StatusButton = new Lang.Class({
         if (this._settingUseMouseWheelChangedId > 0) {
             settings.disconnect(this._settingUseMouseWheelChangedId);
             this._settingUseMouseWheelChangedId = 0;
+        }
+        if (this._settingAlwaysShowActiveWorkspaceChangedId > 0) {
+            settings.disconnect(this._settingAlwaysShowActiveWorkspaceChangedId);
+            this._settingAlwaysShowActiveWorkspaceChangedId = 0;
         }
         if (this._viewScrollId > 0 && this._view) {
             if (this._view.actor) {
