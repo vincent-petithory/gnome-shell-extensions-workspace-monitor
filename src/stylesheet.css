@@ -1,3 +1,7 @@
 .workspace-monitor {
     padding-left: 3px;
 }
+
+.workspace-monitor-box {
+    spacing: 3px;
+}

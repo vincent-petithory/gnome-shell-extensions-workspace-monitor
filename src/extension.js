@@ -45,13 +45,14 @@ let settings;
 const WindowClone = new Lang.Class({
     Name: 'WindowClone',
 
-    _init: function(realWindow, maxSize) {
+    _init: function(realWindow, maxHeight) {
         this.realWindow = realWindow;
         this.metaWindow = realWindow.meta_window;
+        this._maxHeight = maxHeight;
+        this._texture = this.realWindow.get_texture();
         
         this.actor = new St.Bin({reactive: true});
         
-        this._texture = this.realWindow.get_texture();
         this._windowClone = new Clutter.Clone({
             source: this._texture,
             reactive: false
@@ -64,19 +65,15 @@ const WindowClone = new Lang.Class({
         this._windowCloneClickedId = this.actor.connect('button-release-event',
             Lang.bind(this, this._onButtonRelease));
         
-        this.adjust_size(maxSize);
         this.actor.add_actor(this._windowClone);
     },
     
-    adjust_size: function (maxSize) {
+    adjust_size: function (maxHeight) {
         let [width, height] = this._texture.get_size();
-        let scale = Math.min(1.0, maxSize/width, maxSize/height);
+        let scale = Math.min(1.0, settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY)/width, maxHeight/height);
+        this.actor.set_size(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), height*scale);//height*scale + 3);
         this._windowClone.set_size(width*scale, height*scale);
-        // Normal view
-        this.actor.set_size(maxSize, maxSize);
-        // Compact view
-        //this.actor.set_size(width*scale, height*scale + 3);
-        this._maxSize = maxSize;
+        this._maxHeight = maxHeight;
     },
     
     destroy: function() {
@@ -94,7 +91,7 @@ const WindowClone = new Lang.Class({
     },
     
     _onRealWindowSizeChanged: function () {
-        this.adjust_size(this._maxSize);
+        this.adjust_size(this._maxHeight);
     },
     
     _disconnectRealWindowSignals: function() {
@@ -115,12 +112,11 @@ const WindowClone = new Lang.Class({
 const WorkspaceMonitor = new Lang.Class({
     Name: 'WorkspaceMonitor',
 
-    _init: function(metaWorkspace, affectsStruts) {
+    _init: function(metaWorkspace) {
         this.monitorIndex = Main.layoutManager.primaryIndex;
         this.request_display = false;
 
         this.metaWorkspace = metaWorkspace;
-        this.affectsStruts = affectsStruts;
         
         this._windowClones = [];
         
@@ -129,13 +125,20 @@ const WorkspaceMonitor = new Lang.Class({
         this.actor = new St.Bin({reactive: true, style_class: 'workspace-monitor'});
         this.container = new St.Bin({reactive: false, style_class: 'workspace-thumbnails-background'});
         this._box = new St.BoxLayout({name: 'workspace-view',
+                                       style_class: 'workspace-monitor-box',
                                        vertical: true,
                                        reactive: false});
-        this._box._delegate = this;
         this.container.add_actor(this._box);
         this.actor.add_actor(this.container);
-        
+    },
+    
+    set_meta_workspace: function(metaWorkspace) {
+        this.disconnectAll();
+        this.metaWorkspace = metaWorkspace;
+        this.connectAll();
         this.computeSize();
+        this.resetWindows();
+        this.position();
     },
     
     _overviewShowing: function() {
@@ -229,7 +232,7 @@ const WorkspaceMonitor = new Lang.Class({
         if (this._emptyWindowActor) {
             this._box.remove_actor(this._emptyWindowActor);
         }
-        let windowClone = new WindowClone(realWin, this._maxSize);
+        let windowClone = new WindowClone(realWin, this._maxHeight);
         this._windowClones.push(windowClone);
         this._box.add_actor(windowClone.actor);
     },
@@ -271,14 +274,23 @@ const WorkspaceMonitor = new Lang.Class({
         
         let monitor = Main.layoutManager.primaryMonitor;
         this._marginTop = monitor.y + Main.panel.actor.height + 10;
-        this._marginBottom = 60;
-        let maxHeight = (monitor.height - (this._marginTop + this._marginBottom) ) / numWindows;
-        this._maxSize = Math.min(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), maxHeight);
+        this._marginBottom = 20;
+        
+        let spacing;
+        try {
+            spacing = this._box.get_theme_node().get_length('spacing');
+        } catch (e) {
+            spacing = 0;
+        }
+        let maxHeight = (monitor.height - 
+            (this._marginTop + this._marginBottom + spacing*(numWindows-1))
+        ) / numWindows;
+        this._maxHeight = Math.min(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), maxHeight);
     },
     
     position: function() {
         for (let i = 0; i < this._windowClones.length; i++) {
-            this._windowClones[i].adjust_size(this._maxSize);
+            this._windowClones[i].adjust_size(this._maxHeight);
         }
         let padding;
         try {
@@ -288,10 +300,10 @@ const WorkspaceMonitor = new Lang.Class({
         }
         let monitor = Main.layoutManager.primaryMonitor;
         this.actor.y = this._marginTop;
-        let x = monitor.x + monitor.width - this._maxSize - padding*2;
+        let x = monitor.x + monitor.width - settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY) - padding*2;
         // Disable this tween along the X-Axis when we are affecting struts,
         // or the animation will be very laggy.
-        if (this.affectsStruts) {
+        if (settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock') {
             this.actor.x = x;
         } else {
             if (this.actor.x == 0) {
@@ -331,18 +343,13 @@ const WorkspaceMonitor = new Lang.Class({
         this.request_display = true;
     },
     
-    refresh: function() {
-        this.hide();
-        this.show();
-    },
-    
     resetWindows: function () {
         // Empty container
         this._box.destroy_all_children();
         
         let windows = global.get_window_actors().filter(this._isWindowInteresting, this);
         for (let i = 0; i < windows.length; i++) {
-            this._doAddWindow(windows[i], this._maxSize);
+            this._doAddWindow(windows[i]);
         }
         this._addEmptyWindowIfNeeded();
     },
@@ -442,22 +449,31 @@ const StatusButton = new Lang.Class({
     },
     
     _toggleWorkspaceMonitorVisibility: function() {
+        
         this.isActivated = !this.isActivated;
         if (this.isActivated) {
-            this.uninstallWorkspaceIndicator();
-            this.installWorkspaceIndicator();
+            if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+                this._selectedWorkspaceIndex = global.screen.get_active_workspace_index();
+                this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+            }
+            this.updateWorkspaceIndicator();
         } else {
-            this.uninstallWorkspaceIndicator();
+            this.hideWorkspaceIndicator();
+            this._view.destroy();
+            this._view = undefined;
         }
         this._workspaceMonitorVisibilitySwitch.setToggleState(this.isActivated);
     },
     
     _onThumbnailMaxSizeChanged: function () {
-        this.reset();
+        this.updateWorkspaceIndicator();
     },
     
     _onDisplayModeChanged: function () {
-        this.reset();
+        this.hideWorkspaceIndicator();
+        this._view.destroy();
+        this._view = undefined;
+        this.updateWorkspaceIndicator();
     },
     
     _onUseMouseWheelChanged: function () {
@@ -467,28 +483,30 @@ const StatusButton = new Lang.Class({
             }
             this._viewScrollId = 0;
         }
-        if (settings.get_boolean(Lib.Settings.USE_MOUSE_WHEEL_KEY)) {
+        if (this._view && settings.get_boolean(Lib.Settings.USE_MOUSE_WHEEL_KEY)) {
             this._viewScrollId = this._view.actor.connect('scroll-event',
                 Lang.bind(this, this._onViewScrollEvent));
         }
     },
     
     _onAlwaysShowActiveWorkspaceChanged: function() {
-        this._disconnectWorkspaceSwitchingEvents();
-        if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
-            this._connectWorkspaceSwitchingEvents();
-            this._selectedWorkspaceIndex = global.screen.get_active_workspace_index();
-            this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
-            this.reset();
+        if (this.isActivated) {
+            this._disconnectWorkspaceSwitchingEvents();
+            if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+                this._connectWorkspaceSwitchingEvents();
+                this._selectedWorkspaceIndex = global.screen.get_active_workspace_index();
+                this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+                this.updateWorkspaceIndicator();
+            }
         }
     },
     
     _switchWorkspace: function(menuItem, id) {
         this._selectedWorkspaceIndex = id;
-        this.reset();
         // Close the whole menu right away
         // when the user selected another workspace.
         if (this.isActivated) {
+            this.updateWorkspaceIndicator();
             this.menu.close();
         }
     },
@@ -499,7 +517,7 @@ const StatusButton = new Lang.Class({
         if (this._selectedWorkspaceIndex != to) {
             this._selectedWorkspaceIndex = to;
             this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
-            this.reset();
+            this.updateWorkspaceIndicator();
         }
     },
     
@@ -518,9 +536,8 @@ const StatusButton = new Lang.Class({
         
         this._updateWorkspaceSwitcherCombo();
         if (ourWorkspaceChanged) {
-            this.uninstallWorkspaceIndicator();
             if (this.isActivated) {
-                this.installWorkspaceIndicator();
+                this.updateWorkspaceIndicator();
             }
         }
     },
@@ -550,10 +567,15 @@ const StatusButton = new Lang.Class({
     _onWorkspaceMonitorVisibilitySwitchToggled: function(item, event) {
         this.isActivated = event;
         if (this.isActivated) {
-            this.uninstallWorkspaceIndicator();
-            this.installWorkspaceIndicator();
+            if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+                this._selectedWorkspaceIndex = global.screen.get_active_workspace_index();
+                this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+            }
+            this.updateWorkspaceIndicator();
         } else {
-            this.uninstallWorkspaceIndicator();
+            this.hideWorkspaceIndicator();
+            this._view.destroy();
+            this._view = undefined;
         }
     },
     
@@ -579,28 +601,23 @@ const StatusButton = new Lang.Class({
         if (this._selectedWorkspaceIndex == newSelectedWorkspaceIndex) {
             return;
         }
-        this._selectedWorkspaceIndex = newSelectedWorkspaceIndex;
-        this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
-        this.reset();
         // If we track the active workspace, move to it upon changing the monitored workspace manually
         if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
-            let workspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
+            let workspace = global.screen.get_workspace_by_index(newSelectedWorkspaceIndex);
             if (workspace) {
                 workspace.activate(global.get_current_time());
             }
-        }
-    },
-    
-    reset: function() {
-        if (this.isActivated) {
-            this.uninstallWorkspaceIndicator();
-            this.installWorkspaceIndicator();
+        } else {
+            this._selectedWorkspaceIndex = newSelectedWorkspaceIndex;
+            this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
+            this.updateWorkspaceIndicator();
         }
     },
     
     _connectWorkspaceSwitchingEvents: function() {
         if (this._switchWorkspaceNotifyId > 0) {
             global.window_manager.disconnect(this._switchWorkspaceNotifyId);
+            this._switchWorkspaceNotifyId = 0;
         }
         this._switchWorkspaceNotifyId = global.window_manager.connect('switch-workspace',
             Lang.bind(this, this._activeWorkspaceChanged));
@@ -610,35 +627,40 @@ const StatusButton = new Lang.Class({
     _disconnectWorkspaceSwitchingEvents: function() {
         if (this._switchWorkspaceNotifyId > 0) {
             global.window_manager.disconnect(this._switchWorkspaceNotifyId);
+            this._switchWorkspaceNotifyId = 0;
         }
         this._workspaceSwitcherCombo.setSensitive(true);
     },
     
-    installWorkspaceIndicator: function() {
-        let affectsStruts = settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock';
+    updateWorkspaceIndicator: function() {
         this._metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
-        this._view = new WorkspaceMonitor(this._metaWorkspace, affectsStruts);
-        
-        if (settings.get_boolean(Lib.Settings.USE_MOUSE_WHEEL_KEY)) {
-            this._viewScrollId = this._view.actor.connect('scroll-event',
-                Lang.bind(this, this._onViewScrollEvent));
+        if (this._view) {
+            this._view.set_meta_workspace(this._metaWorkspace);
+            global.log("updating wi");
+            this._view.show();
+            global.log("updated wi");
+        } else {
+            this._view = new WorkspaceMonitor(this._metaWorkspace);
+            if (settings.get_boolean(Lib.Settings.USE_MOUSE_WHEEL_KEY)) {
+                this._viewScrollId = this._view.actor.connect('scroll-event',
+                    Lang.bind(this, this._onViewScrollEvent));
+            }
+            
+            Main.layoutManager.addChrome(
+                this._view.actor,
+                {affectsStruts: settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock'}
+            );
+            this._view.show();
         }
-        
         if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
             this._connectWorkspaceSwitchingEvents();
         }
-        
-        Main.layoutManager.addChrome(this._view.actor, {affectsStruts: affectsStruts});
-        this._view.show();
-        
     },
     
-    uninstallWorkspaceIndicator: function() {
+    hideWorkspaceIndicator: function() {
         if (this._view) {
             this._disconnectWorkspaceSwitchingEvents();
             this._view.hide();
-            this._view.destroy();
-            this._view = undefined;
         }
     },
     
@@ -677,7 +699,9 @@ const StatusButton = new Lang.Class({
             }
             this._viewScrollId = 0;
         }
-        this.uninstallWorkspaceIndicator();
+        this.hideWorkspaceIndicator();
+        this._view.destroy();
+        this._view = undefined;
         PanelMenu.SystemStatusButton.prototype.destroy.call(this);
     }
     
