@@ -44,6 +44,8 @@ let settings;
 
 const WindowClone = new Lang.Class({
     Name: 'WindowClone',
+    
+    ICON_SIZE: 24,
 
     _init: function(realWindow, maxHeight) {
         this.realWindow = realWindow;
@@ -52,6 +54,9 @@ const WindowClone = new Lang.Class({
         this._texture = this.realWindow.get_texture();
         
         this.actor = new St.Bin({reactive: true});
+        
+        let group = new Clutter.Group();
+        this.actor.add_actor(group);
         
         this._windowClone = new Clutter.Clone({
             source: this._texture,
@@ -65,14 +70,24 @@ const WindowClone = new Lang.Class({
         this._windowCloneClickedId = this.actor.connect('button-release-event',
             Lang.bind(this, this._onButtonRelease));
         
-        this.actor.add_actor(this._windowClone);
+        group.add_actor(this._windowClone);
+        
+        if (settings.get_boolean(Lib.Settings.SHOW_APP_ICON_KEY)) {
+            let app = Shell.WindowTracker.get_default().get_window_app(this.metaWindow);
+            this._icon = app.create_icon_texture(this.ICON_SIZE);
+            group.add_actor(this._icon);
+        }
     },
     
     adjust_size: function (maxHeight) {
         let [width, height] = this._texture.get_size();
         let scale = Math.min(1.0, settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY)/width, maxHeight/height);
-        this.actor.set_size(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), height*scale);//height*scale + 3);
-        this._windowClone.set_size(width*scale, height*scale);
+        let [sw, sh] = [Math.round(width*scale), Math.round(height*scale)];
+        this.actor.set_size(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), sh);
+        this._windowClone.set_size(sw, sh);
+        if (this._icon) {
+            this._icon.set_position(3, sh - this.ICON_SIZE - 3);
+        }
         this._maxHeight = maxHeight;
     },
     
@@ -82,6 +97,10 @@ const WindowClone = new Lang.Class({
             this._windowClone.destroy();
         }
         if (this.actor) {
+            if (this._windowCloneClickedId > 0) {
+                this.actor.disconnect(this._windowCloneClickedId);
+            }
+            this._windowCloneClickedId = 0;
             this.actor.destroy();
         }
     },
@@ -123,13 +142,13 @@ const WorkspaceMonitor = new Lang.Class({
         // We use the style class of the workspace thumbnails background
         // seen in the overview, for style consistency.
         this.actor = new St.Bin({reactive: true, style_class: 'workspace-monitor'});
-        this.container = new St.Bin({reactive: false, style_class: 'workspace-thumbnails-background'});
+        this._container = new St.Bin({reactive: false, style_class: 'workspace-thumbnails-background'});
         this._box = new St.BoxLayout({name: 'workspace-view',
                                        style_class: 'workspace-monitor-box',
                                        vertical: true,
                                        reactive: false});
-        this.container.add_actor(this._box);
-        this.actor.add_actor(this.container);
+        this._container.add_actor(this._box);
+        this.actor.add_actor(this._container);
     },
     
     set_meta_workspace: function(metaWorkspace) {
@@ -294,7 +313,7 @@ const WorkspaceMonitor = new Lang.Class({
         }
         let padding;
         try {
-            padding = this.container.get_theme_node().get_length('padding');
+            padding = this.actor.get_theme_node().get_length('padding') + this._container.get_theme_node().get_length('padding');
         } catch (e) {
             padding = 0;
         }
@@ -322,8 +341,9 @@ const WorkspaceMonitor = new Lang.Class({
     // Tests if @win is interesting
     _isWindowInteresting: function (win) {
         let tracker = Shell.WindowTracker.get_default();
-        return tracker.is_window_interesting(win.get_meta_window()) &&
-               win.get_meta_window().showing_on_its_workspace() &&
+        let metaWin = win.get_meta_window();
+        return tracker.is_window_interesting(metaWin) &&
+               metaWin.showing_on_its_workspace() &&
                Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index());
     },
     
@@ -426,7 +446,7 @@ const StatusButton = new Lang.Class({
         // Separator
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         
-        global.display.add_keybinding(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING,
+        global.display.add_keybinding(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING_KEY,
             settings,
             Meta.KeyBindingFlags.NONE,
             Lang.bind(this, this._toggleWorkspaceMonitorVisibility));
@@ -438,21 +458,23 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._onDisplayModeChanged));
         this._settingUseMouseWheelChangedId = settings.connect("changed::"+Lib.Settings.USE_MOUSE_WHEEL_KEY,
             Lang.bind(this, this._onUseMouseWheelChanged));
-        this._settingAlwaysShowActiveWorkspaceChangedId = settings.connect("changed::"+Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE,
-            Lang.bind(this, this._onAlwaysShowActiveWorkspaceChanged));
+        this._settingAlwaysTrackActiveWorkspaceChangedId = settings.connect("changed::"+Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY,
+            Lang.bind(this, this._onAlwaysTrackActiveWorkspaceChanged));
+        this._settingShowAppIconChangedId = settings.connect("changed::"+Lib.Settings.SHOW_APP_ICON_KEY,
+            Lang.bind(this, this._onShowAppIconChanged));
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
             Lang.bind(this, this._numWorkspacesChanged));
         
         this._updateWorkspaceSwitcherCombo();
-        this._onAlwaysShowActiveWorkspaceChanged();
+        this._onAlwaysTrackActiveWorkspaceChanged();
     },
     
     _toggleWorkspaceMonitorVisibility: function() {
         
         this.isActivated = !this.isActivated;
         if (this.isActivated) {
-            if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+            if (settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY)) {
                 this._selectedWorkspaceIndex = global.screen.get_active_workspace_index();
                 this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
             }
@@ -489,15 +511,21 @@ const StatusButton = new Lang.Class({
         }
     },
     
-    _onAlwaysShowActiveWorkspaceChanged: function() {
+    _onAlwaysTrackActiveWorkspaceChanged: function() {
         if (this.isActivated) {
             this._disconnectWorkspaceSwitchingEvents();
-            if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+            if (settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY)) {
                 this._connectWorkspaceSwitchingEvents();
                 this._selectedWorkspaceIndex = global.screen.get_active_workspace_index();
                 this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
                 this.updateWorkspaceIndicator();
             }
+        }
+    },
+    
+    _onShowAppIconChanged: function() {
+        if (this.isActivated) {
+            this.updateWorkspaceIndicator();
         }
     },
     
@@ -561,13 +589,13 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._switchWorkspace));
         this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
         // deactivate the combo if we are tracking the active workspace
-        this._workspaceSwitcherCombo.setSensitive( !settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE) );
+        this._workspaceSwitcherCombo.setSensitive( !settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY) );
     },
 
     _onWorkspaceMonitorVisibilitySwitchToggled: function(item, event) {
         this.isActivated = event;
         if (this.isActivated) {
-            if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+            if (settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY)) {
                 this._selectedWorkspaceIndex = global.screen.get_active_workspace_index();
                 this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
             }
@@ -602,7 +630,7 @@ const StatusButton = new Lang.Class({
             return;
         }
         // If we track the active workspace, move to it upon changing the monitored workspace manually
-        if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+        if (settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY)) {
             let workspace = global.screen.get_workspace_by_index(newSelectedWorkspaceIndex);
             if (workspace) {
                 workspace.activate(global.get_current_time());
@@ -636,9 +664,7 @@ const StatusButton = new Lang.Class({
         this._metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
         if (this._view) {
             this._view.set_meta_workspace(this._metaWorkspace);
-            global.log("updating wi");
             this._view.show();
-            global.log("updated wi");
         } else {
             this._view = new WorkspaceMonitor(this._metaWorkspace);
             if (settings.get_boolean(Lib.Settings.USE_MOUSE_WHEEL_KEY)) {
@@ -652,7 +678,7 @@ const StatusButton = new Lang.Class({
             );
             this._view.show();
         }
-        if (settings.get_boolean(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE)) {
+        if (settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY)) {
             this._connectWorkspaceSwitchingEvents();
         }
     },
@@ -689,9 +715,13 @@ const StatusButton = new Lang.Class({
             settings.disconnect(this._settingUseMouseWheelChangedId);
             this._settingUseMouseWheelChangedId = 0;
         }
-        if (this._settingAlwaysShowActiveWorkspaceChangedId > 0) {
-            settings.disconnect(this._settingAlwaysShowActiveWorkspaceChangedId);
-            this._settingAlwaysShowActiveWorkspaceChangedId = 0;
+        if (this._settingAlwaysTrackActiveWorkspaceChangedId > 0) {
+            settings.disconnect(this._settingAlwaysTrackActiveWorkspaceChangedId);
+            this._settingAlwaysTrackActiveWorkspaceChangedId = 0;
+        }
+        if (this._settingShowAppIconChangedId > 0) {
+            settings.disconnect(this._settingShowAppIconChangedId);
+            this._settingShowAppIconChangedId = 0;
         }
         if (this._viewScrollId > 0 && this._view) {
             if (this._view.actor) {

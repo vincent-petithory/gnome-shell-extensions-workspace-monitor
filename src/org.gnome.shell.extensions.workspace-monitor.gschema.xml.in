@@ -17,15 +17,20 @@
       <summary>The maximum size a window thumbnail can have.</summary>
       <description>The maximum size a window thumbnail can have.</description>
     </key>
+    <key name="always-track-active-workspace" type="b">
+      <default>false</default>
+      <summary>Automatically monitor the active workspace.</summary>
+      <description>Automatically show the active workspace in the workspace monitor panel.</description>
+    </key>
     <key name="use-mouse-wheel" type="b">
       <default>true</default>
       <summary>Use the mouse wheel to switch of workspace.</summary>
       <description>Enables the workspace monitor to change of workspace using the mouse wheel.</description>
     </key>
-    <key name="always-show-active-workspace" type="b">
-      <default>false</default>
-      <summary>Automatically monitor the active workspace.</summary>
-      <description>Automatically show the active workspace in the workspace monitor panel.</description>
+    <key name="show-app-icon" type="b">
+      <default>true</default>
+      <summary>Shows the window's application icon.</summary>
+      <description>Shows the window's application icon in the bottom left corner of the window thumbnail.</description>
     </key>
     <key name="toggle-workspace-monitor-panel-keybinding" type="as">
       <default><![CDATA[['<Alt>F3']]]></default>

@@ -32,23 +32,24 @@ const _ = Gettext.gettext;
 
 let settings;
 
-function _createThumbnailMaxSizeSetting() {
-    let thumbnailMaxSize = settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY);
-    
+function _createDisplaySettings() {
     let container = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, margin_top: 5, margin_bottom: 5});
 
-    let settingLabel = new Gtk.Label({label: "<b>"+_("Window thumbnail maximum size")+"</b>",
+    let settingLabel = new Gtk.Label({label: "<b>"+_("Display")+"</b>",
                                        use_markup: true,
                                        xalign: 0});
+    container.add(settingLabel);
     
-    let box = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL,
+    let vbox = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL,
                              margin_left: 20, margin_top: 5});
+    container.add(vbox);
     
-    let label = new Gtk.Label({label: _("Value:"), margin_right: 5, xalign: 0});
+    // Panel Max width setting
+    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
+    let label = new Gtk.Label({label: _("Panel width:"), margin_right: 5, xalign: 0});
     
     let spinButton = new Gtk.SpinButton({adjustment:
         new Gtk.Adjustment ({
-            value: thumbnailMaxSize,
             lower: 50,
             upper: Gdk.Screen.get_default().get_width()*0.5,
             step_increment: 1,
@@ -56,10 +57,22 @@ function _createThumbnailMaxSizeSetting() {
     });
     settings.bind(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY, spinButton, 'value', Gio.SettingsBindFlags.DEFAULT);
     
-    box.pack_start(label, true, true, 0);
-    box.add(spinButton);
-    container.add(settingLabel);
-    container.add(box);
+    hbox.pack_start(label, true, true, 0);
+    hbox.add(spinButton);
+    
+    vbox.add(hbox);
+    
+    // Display Icon setting
+    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
+    
+    let label = new Gtk.Label({label: _("Show the window's application icon:"), xalign: 0});
+    let showAppIcon = new Gtk.Switch();
+    settings.bind(Lib.Settings.SHOW_APP_ICON_KEY, showAppIcon, 'active', Gio.SettingsBindFlags.DEFAULT);
+    
+    hbox.pack_start(label, true, true, 0);
+    hbox.add(showAppIcon);
+    
+    vbox.add(hbox);
 
     return container;
 }
@@ -103,7 +116,7 @@ function _createDisplayModeSetting() {
     return container;
 }
 
-function _createBehaviorSettings() {
+function _createActionSettings() {
     let container = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, margin_top: 5, margin_bottom: 5});
 
     let settingLabel = new Gtk.Label({label: "<b>"+_("Behavior")+"</b>",
@@ -132,12 +145,12 @@ function _createBehaviorSettings() {
     
     let label = new Gtk.Label({label: _("Shortcut to show or hide the panel:"), xalign: 0});
     let entry = new Gtk.Entry();
-    let keybindings = settings.get_strv(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING);
+    let keybindings = settings.get_strv(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING_KEY);
     if (keybindings && keybindings.length > 0) {
         entry.set_text(keybindings[0]);
     }
     entry.connect('changed', function() {
-         settings.set_strv(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING, [entry.get_text()]);
+         settings.set_strv(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING_KEY, [entry.get_text()]);
     });
     
     hbox.pack_start(label, true, true, 0);
@@ -145,17 +158,44 @@ function _createBehaviorSettings() {
     
     vbox.add(hbox);
     
+    return container;
+}
+
+function _createBehaviorSettings() {
+    let container = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, margin_top: 5, margin_bottom: 5});
+
+    let settingLabel = new Gtk.Label({label: "<b>"+_("Behavior")+"</b>",
+                                use_markup: true,
+                                xalign: 0});
+    container.add(settingLabel);
+    
+    let vbox = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL,
+                             margin_left: 20, margin_top: 5});
+    container.add(vbox);
+    
     // track active workspace
     let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
     
     let label = new Gtk.Label({label: _("Always show the active workspace:"), xalign: 0});
     let alwaysShowActiveWorkspace = new Gtk.Switch();
-    settings.bind(Lib.Settings.ALWAYS_SHOW_ACTIVE_WORKSPACE, alwaysShowActiveWorkspace, 'active', Gio.SettingsBindFlags.DEFAULT);
+    settings.bind(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY, alwaysShowActiveWorkspace, 'active', Gio.SettingsBindFlags.DEFAULT);
     
     hbox.pack_start(label, true, true, 0);
     hbox.add(alwaysShowActiveWorkspace);
     
     vbox.add(hbox);
+    
+//    // 
+//    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
+//    
+//    let label = new Gtk.Label({label: _("Always show the active workspace:"), xalign: 0});
+//    let alwaysShowActiveWorkspace = new Gtk.Switch();
+//    settings.bind(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY, alwaysShowActiveWorkspace, 'active', Gio.SettingsBindFlags.DEFAULT);
+//    
+//    hbox.pack_start(label, true, true, 0);
+//    hbox.add(alwaysShowActiveWorkspace);
+//    
+//    vbox.add(hbox);
     
     return container;
 }
@@ -174,13 +214,16 @@ function buildPrefsWidget() {
 
     let box;
 
-    box = _createThumbnailMaxSizeSetting();
+    box = _createDisplaySettings();
     frame.add(box);
 
     box = _createDisplayModeSetting();
     frame.add(box);
 
     box = _createBehaviorSettings();
+    frame.add(box);
+
+    box = _createActionSettings();
     frame.add(box);
 
     frame.show_all();
