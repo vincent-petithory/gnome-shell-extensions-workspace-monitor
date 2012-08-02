@@ -187,6 +187,8 @@ const WorkspaceMonitor = new Lang.Class({
     _init: function(metaWorkspace) {
         this.monitorIndex = Main.layoutManager.primaryIndex;
         this.request_display = false;
+        
+        this._invertWindowList = settings.get_string(Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY) == 'notonworkspace';
 
         this.metaWorkspace = metaWorkspace;
         
@@ -225,6 +227,7 @@ const WorkspaceMonitor = new Lang.Class({
     },
     
     set_meta_workspace: function(metaWorkspace) {
+        this._invertWindowList = settings.get_string(Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY) == 'notonworkspace';
         this.disconnectAll();
         this.metaWorkspace = metaWorkspace;
         this.connectAll();
@@ -261,7 +264,10 @@ const WorkspaceMonitor = new Lang.Class({
         if (!this.request_display) {
             return;
         }
-        if (this.metaWorkspace != metaWorkspace) {
+        if (
+            (!this._invertWindowList && this.metaWorkspace != metaWorkspace) ||
+            (this._invertWindowList && this.metaWorkspace == metaWorkspace)
+            ) {
             return;
         }
         let realWin = metaWin.get_compositor_private();
@@ -415,9 +421,14 @@ const WorkspaceMonitor = new Lang.Class({
     _isWindowInteresting: function (win) {
         let tracker = Shell.WindowTracker.get_default();
         let metaWin = win.get_meta_window();
-        return tracker.is_window_interesting(metaWin) &&
-               metaWin.showing_on_its_workspace() &&
-               Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index());
+        let interesting = tracker.is_window_interesting(metaWin) &&
+               metaWin.showing_on_its_workspace();
+        let onWorkspace = Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index());
+        if (this._invertWindowList) {
+            return interesting && !onWorkspace;
+        } else {
+            return interesting && onWorkspace;
+        }
     },
     
     show: function() {
@@ -541,6 +552,8 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._onShowAppIconChanged));
         this._settingDimUnfocusedWindowsChangedId = settings.connect("changed::"+Lib.Settings.DIM_UNFOCUSED_WINDOWS_KEY,
             Lang.bind(this, this._onDimUnfocusedWindowsChanged));
+        this._settingWindowListBehaviorChangedId = settings.connect("changed::"+Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY,
+            Lang.bind(this, this._onWindowListBehaviorChanged));
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
             Lang.bind(this, this._numWorkspacesChanged));
@@ -608,6 +621,12 @@ const StatusButton = new Lang.Class({
     },
     
     _onDimUnfocusedWindowsChanged: function() {
+        if (this.isActivated) {
+            this.updateWorkspaceIndicator();
+        }
+    },
+    
+    _onWindowListBehaviorChanged: function() {
         if (this.isActivated) {
             this.updateWorkspaceIndicator();
         }
@@ -806,6 +825,10 @@ const StatusButton = new Lang.Class({
         if (this._settingShowAppIconChangedId > 0) {
             settings.disconnect(this._settingShowAppIconChangedId);
             this._settingShowAppIconChangedId = 0;
+        }
+        if (this._settingWindowListBehaviorChangedId > 0) {
+            settings.disconnect(this._settingWindowListBehaviorChangedId);
+            this._settingWindowListBehaviorChangedId = 0;
         }
         if (this._viewScrollId > 0 && this._view) {
             if (this._view.actor) {

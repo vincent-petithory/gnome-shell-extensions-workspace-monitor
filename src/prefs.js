@@ -197,18 +197,44 @@ function _createBehaviorSettings() {
     
     vbox.add(hbox);
     
-//    // 
-//    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
-//    
-//    let label = new Gtk.Label({label: _("Always show the active workspace:"), xalign: 0});
-//    let alwaysShowActiveWorkspace = new Gtk.Switch();
-//    settings.bind(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY, alwaysShowActiveWorkspace, 'active', Gio.SettingsBindFlags.DEFAULT);
-//    
-//    hbox.pack_start(label, true, true, 0);
-//    hbox.add(alwaysShowActiveWorkspace);
-//    
-//    vbox.add(hbox);
+    return container;
+}
+
+function _createWindowListBehaviorSetting() {
+    let container = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, margin_top: 5, margin_bottom: 5});
+
+    let settingLabel = new Gtk.Label({label: "<b>"+_("List of windows")+"</b>",
+                                use_markup: true,
+                                xalign: 0});
     
+    let vbox = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL,
+                             margin_left: 20, margin_top: 5});
+    
+    let onworkspaceButton = new Gtk.RadioButton({label: _("Show all the windows of the selected workspace")});
+    let notonworkspaceButton = new Gtk.RadioButton({label: _("Show all the windows except those of the selected workspace"),
+                                               group: onworkspaceButton});
+    let windowListBehavior = settings.get_string(Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY);
+
+    if (windowListBehavior == 'notonworkspace')
+        notonworkspaceButton.set_active(true);
+    else if (windowListBehavior == 'onworkspace')
+        onworkspaceButton.set_active(true);
+
+    onworkspaceButton.connect('toggled', function(button) {
+        if (button.get_active())
+            settings.set_string(Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY, 'onworkspace');
+    });
+    notonworkspaceButton.connect('toggled', function(button) {
+        if (button.get_active())
+            settings.set_string(Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY, 'notonworkspace');
+    });
+    
+    vbox.add(onworkspaceButton);
+    vbox.add(notonworkspaceButton);
+
+    container.add(settingLabel);
+    container.add(vbox);
+
     return container;
 }
 
@@ -233,6 +259,9 @@ function buildPrefsWidget() {
     frame.add(box);
 
     box = _createBehaviorSettings();
+    frame.add(box);
+    
+    box = _createWindowListBehaviorSetting();
     frame.add(box);
 
     box = _createActionSettings();

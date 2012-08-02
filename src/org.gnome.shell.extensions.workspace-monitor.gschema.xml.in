@@ -4,13 +4,17 @@
         <value value="0" nick="dock"/>
         <value value="1" nick="overlay"/>
     </enum>
+    <enum id="org.gnome.shell.extensions.workspace-monitor.window-list-behavior">
+        <value value="0" nick="onworkspace"/>
+        <value value="1" nick="notonworkspace"/>
+    </enum>
   <schema path="/org/gnome/shell/extensions/workspace-monitor/" id="org.gnome.shell.extensions.workspace-monitor">
     <key name="display-mode" enum="org.gnome.shell.extensions.workspace-monitor.display-mode">
       <default>'dock'</default>
       <summary>Display mode of the panel</summary>
       <description>The behavior of the workspace monitor panel:
-      dock: will reserve space like gnome shell's top bar.
-      overlay: will appear above other windows</description>
+      dock: will reserve space like gnome shell's top bar,
+      overlay: will appear above other windows.</description>
     </key>
     <key name="thumbnail-max-size" type="i">
       <default>250</default>
@@ -36,6 +40,13 @@
       <default>true</default>
       <summary>Dims windows that are not focused.</summary>
       <description>Dims windows that are not focused.</description>
+    </key>
+    <key name="window-list-behavior" enum="org.gnome.shell.extensions.workspace-monitor.window-list-behavior">
+      <default>'onworkspace'</default>
+      <summary>The behavior to display the window list</summary>
+      <description>The window list to display:
+      onworkspace: will display the windows belonging to the selected workspace,
+      notonworkspace: will display the windows that are not belonging to the selected workspace.</description>
     </key>
     <key name="toggle-workspace-monitor-panel-keybinding" type="as">
       <default><![CDATA[['<Alt>F3']]]></default>
