@@ -1,4 +1,4 @@
-# French translations for gnome-shell-extensions-workspace-monitor package.
+# Portuguese translations for gnome-shell-extensions-workspace-monitor package.
 # Copyright (C) 2012 THE gnome-shell-extensions-workspace-monitor'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the gnome-shell-extensions-workspace-monitor package.
 # Vincent Petithory <vincent.petithory@gmail.com>, 2012.
@@ -8,43 +8,42 @@ msgstr ""
 "Project-Id-Version: gnome-shell-extensions-workspace-monitor 4\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2012-08-02 22:12+0200\n"
-"PO-Revision-Date: 2012-08-02 22:13+0100\n"
+"PO-Revision-Date: 2012-08-02 23:04+0100\n"
 "Last-Translator: Vincent Petithory <vincent.petithory@gmail.com>\n"
-"Language-Team: French\n"
-"Language: fr\n"
+"Language-Team: Portuguese\n"
+"Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #. Switch visible / hidden
 #: ../src/extension.js:528
 msgid "Workspace Monitor"
-msgstr "Moniteur d'espace de travail"
+msgstr "Monitor do ambiente de trabalho"
 
 #: ../src/extension.js:687
 msgid "Workspace"
-msgstr "Espace de travail"
+msgstr "Ambiente de trabalho"
 
 #: ../src/prefs.js:38
 msgid "Display"
-msgstr "Affichage"
+msgstr "Exposição"
 
 #: ../src/prefs.js:49
 msgid "Panel width"
-msgstr "Largeur du panneau"
+msgstr "Largura do painel"
 
 #: ../src/prefs.js:68
 msgid "Show the window's application icon"
-msgstr "Afficher l'icône d'application de la fenêtre"
+msgstr "Mostrar o ícone da aplicação da janela"
 
 #: ../src/prefs.js:80
 msgid "Dim unfocused windows"
-msgstr "Estomper les fenêtres désactivées"
+msgstr "Escurecer as janelas inactivas"
 
 #: ../src/prefs.js:95
 msgid "Display mode"
-msgstr "Mode d'affichage"
+msgstr "Modo de exposição"
 
 #: ../src/prefs.js:102
 msgid "Dock"
@@ -52,43 +51,37 @@ msgstr "Dock"
 
 #: ../src/prefs.js:103
 msgid "Overlay"
-msgstr "Surcouche"
+msgstr "Sobreposição"
 
 #: ../src/prefs.js:134
 msgid "Actions"
-msgstr "Actions"
+msgstr "Acções"
 
 #: ../src/prefs.js:146
 msgid "Use the mouse wheel to switch of workspace"
-msgstr "Utiliser la molette de la souris pour changer d'espace de travail"
+msgstr "Usar a roda do rato para trocar de ambiente de trabalho"
 
 #: ../src/prefs.js:158
 msgid "Shortcut to show or hide the panel"
-msgstr "Raccourci pour afficher ou cacher le panneau"
+msgstr "Atalho para mostrar ou ocultar o painel"
 
 #: ../src/prefs.js:179
 msgid "Behavior"
-msgstr "Comportement"
+msgstr "Comportamento"
 
 #: ../src/prefs.js:191
 msgid "Always show the active workspace"
-msgstr "Toujours montrer l'espace de travail actif"
+msgstr "Mostrar sempre o ambiente de trabalho activo"
 
 #: ../src/prefs.js:206
 msgid "List of windows"
-msgstr "Liste des fenêtres"
+msgstr "Lista de janelas"
 
 #: ../src/prefs.js:213
 msgid "Show all the windows of the selected workspace"
-msgstr "Afficher toutes les fenêtres de l'espace de travail sélectionné"
+msgstr "Mostrar todas as janelas do ambiente de trabalho seleccionado"
 
 #: ../src/prefs.js:214
 msgid "Show all the windows except those of the selected workspace"
-msgstr ""
-"Afficher toutes les fenêtres sauf celles de l'espace de travail sélectionné"
+msgstr "Mostrar todas as janelas excepto as do ambiente de trabalho seleccionado"
 
-#~ msgid "Window thumbnail maximum size"
-#~ msgstr "Taille maximale des vignettes des fenêtres"
-
-#~ msgid "Workspace switching"
-#~ msgstr "Changement d'espace de travail"
