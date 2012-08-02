@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-shell-extensions-workspace-monitor 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-30 12:07+0200\n"
-"PO-Revision-Date: 2012-07-30 12:07+0100\n"
-"Last-Translator: Vincent Petithory <v.petithory@elpev.com>\n"
+"POT-Creation-Date: 2012-08-02 22:12+0200\n"
+"PO-Revision-Date: 2012-08-02 22:13+0100\n"
+"Last-Translator: Vincent Petithory <vincent.petithory@gmail.com>\n"
 "Language-Team: French\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -18,34 +18,77 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #. Switch visible / hidden
-#: ../src/extension.js:413
+#: ../src/extension.js:528
 msgid "Workspace Monitor"
 msgstr "Moniteur d'espace de travail"
 
-#: ../src/extension.js:509
+#: ../src/extension.js:687
 msgid "Workspace"
 msgstr "Espace de travail"
 
-#: ../src/prefs.js:40
-msgid "Window thumbnail maximum size"
-msgstr "Taille maximale des vignettes des fenêtres"
+#: ../src/prefs.js:38
+msgid "Display"
+msgstr "Affichage"
 
-#: ../src/prefs.js:74
+#: ../src/prefs.js:49
+msgid "Panel width"
+msgstr "Largeur du panneau"
+
+#: ../src/prefs.js:68
+msgid "Show the window's application icon"
+msgstr "Afficher l'icône d'application de la fenêtre"
+
+#: ../src/prefs.js:80
+msgid "Dim unfocused windows"
+msgstr "Estomper les fenêtres désactivées"
+
+#: ../src/prefs.js:95
 msgid "Display mode"
 msgstr "Mode d'affichage"
 
-#: ../src/prefs.js:81
+#: ../src/prefs.js:102
 msgid "Dock"
 msgstr "Dock"
 
-#: ../src/prefs.js:82
+#: ../src/prefs.js:103
 msgid "Overlay"
 msgstr "Surcouche"
 
-#: ../src/prefs.js:113
-msgid "Workspace switching"
-msgstr "Changement d'espace de travail"
+#: ../src/prefs.js:134
+msgid "Actions"
+msgstr "Actions"
 
-#: ../src/prefs.js:120
+#: ../src/prefs.js:146
 msgid "Use the mouse wheel to switch of workspace"
 msgstr "Utiliser la molette de la souris pour changer d'espace de travail"
+
+#: ../src/prefs.js:158
+msgid "Shortcut to show or hide the panel"
+msgstr "Raccourci pour afficher ou cacher le panneau"
+
+#: ../src/prefs.js:179
+msgid "Behavior"
+msgstr "Comportement"
+
+#: ../src/prefs.js:191
+msgid "Always show the active workspace"
+msgstr "Toujours montrer l'espace de travail actif"
+
+#: ../src/prefs.js:206
+msgid "List of windows"
+msgstr "Liste des fenêtres"
+
+#: ../src/prefs.js:213
+msgid "Show all the windows of the selected workspace"
+msgstr "Afficher toutes les fenêtres de l'espace de travail sélectionné"
+
+#: ../src/prefs.js:214
+msgid "Show all the windows except those of the selected workspace"
+msgstr ""
+"Afficher toutes les fenêtres sauf celles de l'espace de travail sélectionné"
+
+#~ msgid "Window thumbnail maximum size"
+#~ msgstr "Taille maximale des vignettes des fenêtres"
+
+#~ msgid "Workspace switching"
+#~ msgstr "Changement d'espace de travail"
