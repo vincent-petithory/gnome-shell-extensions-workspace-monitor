@@ -304,7 +304,7 @@ const WorkspaceMonitor = new Lang.Class({
         let maxHeight = (monitor.height - 
             (this._marginTop + this._marginBottom + spacing*(numWindows-1))
         ) / numWindows;
-        this._maxHeight = Math.min(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), maxHeight);
+        this._maxHeight = maxHeight;
     },
     
     position: function() {
