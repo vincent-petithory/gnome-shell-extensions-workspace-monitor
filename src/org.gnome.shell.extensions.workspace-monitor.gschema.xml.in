@@ -32,6 +32,11 @@
       <summary>Shows the window's application icon.</summary>
       <description>Shows the window's application icon in the bottom left corner of the window thumbnail.</description>
     </key>
+    <key name="dim-unfocused-windows" type="b">
+      <default>true</default>
+      <summary>Dims windows that are not focused.</summary>
+      <description>Dims windows that are not focused.</description>
+    </key>
     <key name="toggle-workspace-monitor-panel-keybinding" type="as">
       <default><![CDATA[['<Alt>F3']]]></default>
       <summary>Shows or hides the workspace monitor panel.</summary>

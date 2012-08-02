@@ -33,6 +33,7 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Gtk = imports.gi.Gtk;
 const Overview = imports.ui.overview;
+const WindowManager = imports.ui.windowManager;
 
 let extension = imports.misc.extensionUtils.getCurrentExtension();
 let Lib = extension.imports.lib;
@@ -51,6 +52,9 @@ const WindowClone = new Lang.Class({
         this.realWindow = realWindow;
         this.metaWindow = realWindow.meta_window;
         this._maxHeight = maxHeight;
+        
+        this._dimActors = settings.get_boolean(Lib.Settings.DIM_UNFOCUSED_WINDOWS_KEY);
+        
         this._texture = this.realWindow.get_texture();
         
         this.actor = new St.Bin({reactive: true});
@@ -62,6 +66,10 @@ const WindowClone = new Lang.Class({
             source: this._texture,
             reactive: false
         });
+        if (this._dimActors) {
+            this._windowClone._dimmer = new DimEffect(this._windowClone);
+        }
+        group.add_actor(this._windowClone);
         
         this._realWindowDestroyId = this.realWindow.connect('destroy',
             Lang.bind(this, this._disconnectRealWindowSignals));
@@ -70,12 +78,54 @@ const WindowClone = new Lang.Class({
         this._windowCloneClickedId = this.actor.connect('button-release-event',
             Lang.bind(this, this._onButtonRelease));
         
-        group.add_actor(this._windowClone);
+        this._border = new St.Bin({ style_class: 'workspace-thumbnail-indicator' });
+        group.add_actor(this._border);
         
         if (settings.get_boolean(Lib.Settings.SHOW_APP_ICON_KEY)) {
             let app = Shell.WindowTracker.get_default().get_window_app(this.metaWindow);
             this._icon = app.create_icon_texture(this.ICON_SIZE);
+            if (this._dimActors) {
+                this._icon._dimmer = new DimEffect(this._icon);
+            }
             group.add_actor(this._icon);
+        }
+        
+        this.set_highlighted(this.metaWindow.has_focus());
+    },
+    
+    set_highlighted: function(highlighted) {
+        if (highlighted) {
+            this._border.set_opacity(255);
+            if (this._dimActors) {
+                Tweener.addTween(this._windowClone._dimmer,
+                     { dimFraction: 0.0,
+                       time: WindowManager.DIM_TIME,
+                       transition: 'linear'
+                     });
+                if (this._icon) {
+                    Tweener.addTween(this._icon._dimmer,
+                     { dimFraction: 0.0,
+                       time: WindowManager.DIM_TIME,
+                       transition: 'linear'
+                     });
+                }
+            }
+        } else {
+            this._border.set_opacity(127);
+            if (this._dimActors) {
+                Tweener.addTween(this._windowClone._dimmer,
+                     { dimFraction: 1.0,
+                       time: WindowManager.UNDIM_TIME,
+                       transition: 'linear'
+                     });
+                if (this._icon) {
+                    Tweener.addTween(this._icon._dimmer,
+                     { dimFraction: 1.0,
+                       time: WindowManager.UNDIM_TIME,
+                       transition: 'linear'
+                     });
+                }
+            }
         }
     },
     
@@ -85,6 +135,9 @@ const WindowClone = new Lang.Class({
         let [sw, sh] = [Math.round(width*scale), Math.round(height*scale)];
         this.actor.set_size(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), sh);
         this._windowClone.set_size(sw, sh);
+        if (this._border) {
+            this._border.set_size(sw, sh);
+        }
         if (this._icon) {
             this._icon.set_position(3, sh - this.ICON_SIZE - 3);
         }
@@ -149,6 +202,26 @@ const WorkspaceMonitor = new Lang.Class({
                                        reactive: false});
         this._container.add_actor(this._box);
         this.actor.add_actor(this._container);
+        this._focusWindowChangedId = global.display.connect('notify::focus-window',
+            Lang.bind(this, this._focusWindowChanged));
+    },
+    
+    _focusWindowChanged: function() {
+        let focusedMetaWindow = global.display.focus_window;
+        if (focusedMetaWindow) {
+            for (let i = 0; i < this._windowClones.length; i++) {
+                let windowClone = this._windowClones[i];
+                if (windowClone.metaWindow == focusedMetaWindow) {
+                    windowClone.set_highlighted(true);
+                } else {
+                    windowClone.set_highlighted(false);
+                }
+            }
+        } else {
+            for (let i = 0; i < this._windowClones.length; i++) {
+                this._windowClones[i].set_highlighted(false);
+            }
+        }
     },
     
     set_meta_workspace: function(metaWorkspace) {
@@ -396,22 +469,22 @@ const WorkspaceMonitor = new Lang.Class({
     },
     
     disconnectAll: function () {
-        if (this._overviewShowingId) {
+        if (this._overviewShowingId > 0) {
             Main.overview.disconnect(this._overviewShowingId);
             this._overviewShowingId = 0;
         }
 
-        if (this._overviewHidingId) {
+        if (this._overviewHidingId > 0) {
             Main.overview.disconnect(this._overviewHidingId);
             this._overviewHidingId = 0;
         }
         
-        if (this._windowAddedId && this.metaWorkspace) {
+        if (this._windowAddedId > 0 && this.metaWorkspace) {
             this.metaWorkspace.disconnect(this._windowAddedId);
             this._windowAddedId = 0;
         }
         
-        if (this._windowRemovedId && this.metaWorkspace) {
+        if (this._windowRemovedId > 0 && this.metaWorkspace) {
             this.metaWorkspace.disconnect(this._windowRemovedId);
             this._windowRemovedId = 0;
         }
@@ -419,6 +492,10 @@ const WorkspaceMonitor = new Lang.Class({
 
     destroy: function() {
         this.disconnectAll();
+        if (this._focusWindowChangedId > 0) {
+            global.display.disconnect(this._focusWindowChangedId);
+            this._focusWindowChangedId = 0;
+        }
         this.actor.destroy();
     }
 
@@ -462,6 +539,8 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._onAlwaysTrackActiveWorkspaceChanged));
         this._settingShowAppIconChangedId = settings.connect("changed::"+Lib.Settings.SHOW_APP_ICON_KEY,
             Lang.bind(this, this._onShowAppIconChanged));
+        this._settingDimUnfocusedWindowsChangedId = settings.connect("changed::"+Lib.Settings.DIM_UNFOCUSED_WINDOWS_KEY,
+            Lang.bind(this, this._onDimUnfocusedWindowsChanged));
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
             Lang.bind(this, this._numWorkspacesChanged));
@@ -471,7 +550,6 @@ const StatusButton = new Lang.Class({
     },
     
     _toggleWorkspaceMonitorVisibility: function() {
-        
         this.isActivated = !this.isActivated;
         if (this.isActivated) {
             if (settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY)) {
@@ -524,6 +602,12 @@ const StatusButton = new Lang.Class({
     },
     
     _onShowAppIconChanged: function() {
+        if (this.isActivated) {
+            this.updateWorkspaceIndicator();
+        }
+    },
+    
+    _onDimUnfocusedWindowsChanged: function() {
         if (this.isActivated) {
             this.updateWorkspaceIndicator();
         }
@@ -735,6 +819,55 @@ const StatusButton = new Lang.Class({
         PanelMenu.SystemStatusButton.prototype.destroy.call(this);
     }
     
+});
+
+var dimShader = undefined;
+
+function getDimShaderSource() {
+    if (!dimShader) {
+        dimShader = Shell.get_file_contents_utf8_sync(
+            extension.dir.get_child('dim.glsl').get_path()
+        );
+    }
+    return dimShader;
+}
+
+const DimEffect = new Lang.Class({
+    Name: 'DimEffect',
+
+    _init: function(actor) {
+        if (Clutter.feature_available(Clutter.FeatureFlags.SHADERS_GLSL)) {
+            this._effect = new Clutter.ShaderEffect({ shader_type: Clutter.ShaderType.FRAGMENT_SHADER });
+            this._effect.set_shader_source(getDimShaderSource());
+        } else {
+            this._effect = null;
+        }
+
+        this.actor = actor;
+    },
+
+    set dimFraction(fraction) {
+        this._dimFraction = fraction;
+
+        if (this._effect == null)
+            return;
+
+        if (fraction > 0.01) {
+            Shell.shader_effect_set_double_uniform(this._effect, 'fraction', fraction);
+
+            if (!this._effect.actor)
+                this.actor.add_effect(this._effect);
+        } else {
+            if (this._effect.actor)
+                this.actor.remove_effect(this._effect);
+        }
+    },
+
+    get dimFraction() {
+        return this._dimFraction;
+    },
+
+    _dimFraction: 0.0
 });
 
 

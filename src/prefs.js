@@ -46,7 +46,7 @@ function _createDisplaySettings() {
     
     // Panel Max width setting
     let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
-    let label = new Gtk.Label({label: _("Panel width:"), margin_right: 5, xalign: 0});
+    let label = new Gtk.Label({label: _("Panel width"), margin_right: 5, xalign: 0});
     
     let spinButton = new Gtk.SpinButton({adjustment:
         new Gtk.Adjustment ({
@@ -65,12 +65,24 @@ function _createDisplaySettings() {
     // Display Icon setting
     let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
     
-    let label = new Gtk.Label({label: _("Show the window's application icon:"), xalign: 0});
+    let label = new Gtk.Label({label: _("Show the window's application icon"), xalign: 0});
     let showAppIcon = new Gtk.Switch();
     settings.bind(Lib.Settings.SHOW_APP_ICON_KEY, showAppIcon, 'active', Gio.SettingsBindFlags.DEFAULT);
     
     hbox.pack_start(label, true, true, 0);
     hbox.add(showAppIcon);
+    
+    vbox.add(hbox);
+    
+    // Dim unfocused windows setting
+    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
+    
+    let label = new Gtk.Label({label: _("Dim unfocused windows"), xalign: 0});
+    let dimUnfocusedWindows = new Gtk.Switch();
+    settings.bind(Lib.Settings.DIM_UNFOCUSED_WINDOWS_KEY, dimUnfocusedWindows, 'active', Gio.SettingsBindFlags.DEFAULT);
+    
+    hbox.pack_start(label, true, true, 0);
+    hbox.add(dimUnfocusedWindows);
     
     vbox.add(hbox);
 
@@ -119,7 +131,7 @@ function _createDisplayModeSetting() {
 function _createActionSettings() {
     let container = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, margin_top: 5, margin_bottom: 5});
 
-    let settingLabel = new Gtk.Label({label: "<b>"+_("Behavior")+"</b>",
+    let settingLabel = new Gtk.Label({label: "<b>"+_("Actions")+"</b>",
                                 use_markup: true,
                                 xalign: 0});
     container.add(settingLabel);
@@ -131,7 +143,7 @@ function _createActionSettings() {
     // Mouse wheel setting
     let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
     
-    let label = new Gtk.Label({label: _("Use the mouse wheel to switch of workspace:"), xalign: 0});
+    let label = new Gtk.Label({label: _("Use the mouse wheel to switch of workspace"), xalign: 0});
     let useMouseWheelItem = new Gtk.Switch();
     settings.bind(Lib.Settings.USE_MOUSE_WHEEL_KEY, useMouseWheelItem, 'active', Gio.SettingsBindFlags.DEFAULT);
     
@@ -143,7 +155,7 @@ function _createActionSettings() {
     // Keybinding setting
     let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
     
-    let label = new Gtk.Label({label: _("Shortcut to show or hide the panel:"), xalign: 0});
+    let label = new Gtk.Label({label: _("Shortcut to show or hide the panel"), xalign: 0});
     let entry = new Gtk.Entry();
     let keybindings = settings.get_strv(Lib.Settings.TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING_KEY);
     if (keybindings && keybindings.length > 0) {
@@ -176,7 +188,7 @@ function _createBehaviorSettings() {
     // track active workspace
     let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
     
-    let label = new Gtk.Label({label: _("Always show the active workspace:"), xalign: 0});
+    let label = new Gtk.Label({label: _("Always show the active workspace"), xalign: 0});
     let alwaysShowActiveWorkspace = new Gtk.Switch();
     settings.bind(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY, alwaysShowActiveWorkspace, 'active', Gio.SettingsBindFlags.DEFAULT);
     

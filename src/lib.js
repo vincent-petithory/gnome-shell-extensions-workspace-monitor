@@ -31,6 +31,7 @@ const Settings = {
     THUMBNAIL_MAX_SIZE_KEY: 'thumbnail-max-size',
     USE_MOUSE_WHEEL_KEY: 'use-mouse-wheel',
     SHOW_APP_ICON_KEY: 'show-app-icon',
+    DIM_UNFOCUSED_WINDOWS_KEY: 'dim-unfocused-windows',
     ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY: 'always-track-active-workspace',
     TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING_KEY: 'toggle-workspace-monitor-panel-keybinding'
 }
@@ -67,3 +68,4 @@ function initTranslations(extension) {
         Gettext.bindtextdomain(GETTEXT_DOMAIN, extension.metadata.locale);
     }
 }
+
