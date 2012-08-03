@@ -1,6 +1,6 @@
 include ../include.mk
 
-dist_extension_DATA = extension.js lib.js prefs.js stylesheet.css dim.glsl 
+dist_extension_DATA = extension.js lib.js dim.js prefs.js stylesheet.css dim.glsl 
 nodist_extension_DATA = metadata.json
 
 EXTRA_DIST = metadata.json.in

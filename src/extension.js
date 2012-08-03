@@ -37,6 +37,7 @@ const WindowManager = imports.ui.windowManager;
 
 let extension = imports.misc.extensionUtils.getCurrentExtension();
 let Lib = extension.imports.lib;
+let Dim = extension.imports.dim;
 
 const Gettext = imports.gettext.domain(Lib.GETTEXT_DOMAIN);
 const _ = Gettext.gettext;
@@ -67,7 +68,7 @@ const WindowClone = new Lang.Class({
             reactive: false
         });
         if (this._dimActors) {
-            this._windowClone._dimmer = new DimEffect(this._windowClone);
+            this._windowClone._dimmer = new Dim.DimEffect(this._windowClone);
         }
         group.add_actor(this._windowClone);
         
@@ -85,7 +86,7 @@ const WindowClone = new Lang.Class({
             let app = Shell.WindowTracker.get_default().get_window_app(this.metaWindow);
             this._icon = app.create_icon_texture(this.ICON_SIZE);
             if (this._dimActors) {
-                this._icon._dimmer = new DimEffect(this._icon);
+                this._icon._dimmer = new Dim.DimEffect(this._icon);
             }
             group.add_actor(this._icon);
         }
@@ -100,13 +101,13 @@ const WindowClone = new Lang.Class({
                 Tweener.addTween(this._windowClone._dimmer,
                      { dimFraction: 0.0,
                        time: WindowManager.DIM_TIME,
-                       transition: 'linear'
+                       transition: 'easeOutQuad'
                      });
                 if (this._icon) {
                     Tweener.addTween(this._icon._dimmer,
                      { dimFraction: 0.0,
                        time: WindowManager.DIM_TIME,
-                       transition: 'linear'
+                       transition: 'easeOutQuad'
                      });
                 }
             }
@@ -842,55 +843,6 @@ const StatusButton = new Lang.Class({
         PanelMenu.SystemStatusButton.prototype.destroy.call(this);
     }
     
-});
-
-var dimShader = undefined;
-
-function getDimShaderSource() {
-    if (!dimShader) {
-        dimShader = Shell.get_file_contents_utf8_sync(
-            extension.dir.get_child('dim.glsl').get_path()
-        );
-    }
-    return dimShader;
-}
-
-const DimEffect = new Lang.Class({
-    Name: 'DimEffect',
-
-    _init: function(actor) {
-        if (Clutter.feature_available(Clutter.FeatureFlags.SHADERS_GLSL)) {
-            this._effect = new Clutter.ShaderEffect({ shader_type: Clutter.ShaderType.FRAGMENT_SHADER });
-            this._effect.set_shader_source(getDimShaderSource());
-        } else {
-            this._effect = null;
-        }
-
-        this.actor = actor;
-    },
-
-    set dimFraction(fraction) {
-        this._dimFraction = fraction;
-
-        if (this._effect == null)
-            return;
-
-        if (fraction > 0.01) {
-            Shell.shader_effect_set_double_uniform(this._effect, 'fraction', fraction);
-
-            if (!this._effect.actor)
-                this.actor.add_effect(this._effect);
-        } else {
-            if (this._effect.actor)
-                this.actor.remove_effect(this._effect);
-        }
-    },
-
-    get dimFraction() {
-        return this._dimFraction;
-    },
-
-    _dimFraction: 0.0
 });
 
 
