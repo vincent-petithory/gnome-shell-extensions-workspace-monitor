@@ -5,6 +5,7 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 SUBDIRS = src po
 
 zip-file: all
+	-rm -fR $(abs_builddir)/$(uuid).zip
 	-rm -fR $(builddir)/_build
 	mkdir $(builddir)/_build; \
 	$(MAKE) install DESTDIR="$(abs_builddir)/_build"; \
@@ -22,7 +23,7 @@ zip-file: all
 	-rm -fR $(builddir)/_build
 
 local-install: zip-file
-	mkdir -p $(localextensiondir) && unzip -o $(abs_builddir)/$(uuid).zip -d $(localextensiondir);
+	mkdir -p $(localextensiondir) && unzip -o "$(abs_builddir)/$(uuid).zip" -d $(localextensiondir);
 
 local-uninstall: Makefile
 	-rm -fR $(localextensiondir)
