@@ -38,6 +38,7 @@ const WindowManager = imports.ui.windowManager;
 let extension = imports.misc.extensionUtils.getCurrentExtension();
 let Lib = extension.imports.lib;
 let Dim = extension.imports.dim;
+let Intellihide = extension.imports.intellihide;
 
 const Gettext = imports.gettext.domain(Lib.GETTEXT_DOMAIN);
 const _ = Gettext.gettext;
@@ -241,11 +242,6 @@ const WorkspaceMonitor = new Lang.Class({
         if (this.request_display) {
             this.actor.opacity = 255;
             this.actor.hide();
-            Tweener.addTween(this.actor, {
-                opacity: 0,
-                transition: 'easeOutQuad',
-                time: Overview.ANIMATION_TIME
-            });
         }
     },
     
@@ -391,31 +387,6 @@ const WorkspaceMonitor = new Lang.Class({
         for (let i = 0; i < this._windowClones.length; i++) {
             this._windowClones[i].adjust_size(this._maxHeight);
         }
-        let padding;
-        try {
-            padding = this.actor.get_theme_node().get_length('padding') + this._container.get_theme_node().get_length('padding');
-        } catch (e) {
-            padding = 0;
-        }
-        let monitor = Main.layoutManager.primaryMonitor;
-        this.actor.y = this._marginTop;
-        let x = monitor.x + monitor.width - settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY) - padding*2;
-        // Disable this tween along the X-Axis when we are affecting struts,
-        // or the animation will be very laggy.
-        if (settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock') {
-            this.actor.x = x;
-        } else {
-            if (this.actor.x == 0) {
-                this.actor.x = monitor.x + monitor.width - 10;
-            }
-            Tweener.addTween(this.actor,
-             {
-               x: x,
-               transition: 'easeOutQuad',
-               time: Overview.ANIMATION_TIME
-             });
-        
-        }
     },
 
     // Tests if @win is interesting
@@ -438,6 +409,33 @@ const WorkspaceMonitor = new Lang.Class({
             this.computeSize();
             this.resetWindows();
             this.position();
+            
+            let padding;
+            try {
+                padding = this.actor.get_theme_node().get_length('padding') + this._container.get_theme_node().get_length('padding');
+            } catch (e) {
+                padding = 0;
+            }
+            let monitor = Main.layoutManager.primaryMonitor;
+            this.actor.y = this._marginTop;
+            let x = monitor.x + monitor.width - settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY) - padding*2;
+            // Disable this tween along the X-Axis when we are affecting struts,
+            // or the animation will be very laggy.
+            if (settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock') {
+                this.actor.x = x;
+            } else {
+                if (this.actor.x == 0) {
+                    this.actor.x = monitor.x + monitor.width - 10;
+                }
+                Tweener.addTween(this.actor,
+                 {
+                   x: x,
+                   transition: 'easeOutQuad',
+                   time: Overview.ANIMATION_TIME
+                 });
+            
+            }
+            
             // Do not show the actor if we are in the Overview
             if (Main.overview.visible) {
                 this.actor.hide();
@@ -580,6 +578,9 @@ const StatusButton = new Lang.Class({
     },
     
     _onThumbnailMaxSizeChanged: function () {
+        this.hideWorkspaceIndicator();
+        this._view.destroy();
+        this._view = undefined;
         this.updateWorkspaceIndicator();
     },
     
@@ -781,6 +782,16 @@ const StatusButton = new Lang.Class({
                 {affectsStruts: settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock'}
             );
             this._view.show();
+            
+        }
+        if (this._intellihide) {
+            this._intellihide.destroy();
+            this._intellihide = undefined;
+        }
+        // Use intellihide in overlay mode only
+        if (settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'overlay') {
+            this._intellihide = new Intellihide.Intellihide(this._view.actor, new Intellihide.SlideRightScreenEffect(Overview.ANIMATION_TIME));
+            this._intellihide.adjustActorVisibility();
         }
         if (settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY)) {
             this._connectWorkspaceSwitchingEvents();
@@ -836,6 +847,10 @@ const StatusButton = new Lang.Class({
                 this._view.actor.disconnect(this._viewScrollId);
             }
             this._viewScrollId = 0;
+        }
+        if (this._intellihide) {
+            this._intellihide.destroy();
+            this._intellihide = undefined;
         }
         this.hideWorkspaceIndicator();
         this._view.destroy();
