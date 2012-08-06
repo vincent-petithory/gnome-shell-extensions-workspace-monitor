@@ -12,6 +12,7 @@ zip-file: all
 	cp -r "$(builddir)/_build$(extensiondir)" "$(builddir)/_build/"; \
 	cp -r "$(builddir)/_build$(datadir)/locale" "$(builddir)/_build/$(uuid)"; \
 	cp "$(srcdir)/COPYING" -t "$(builddir)/_build/$(uuid)"; \
+	cp "$(srcdir)/README.md" -t "$(builddir)/_build/$(uuid)"; \
 	if [ -f "$(builddir)/_build$(datadir)/glib-2.0/schemas/$(gschemabase).$(extensionname).gschema.xml" ]; then \
 		mkdir "$(builddir)/_build/$(uuid)/schemas"; \
 		cp "$(builddir)/_build$(datadir)/glib-2.0/schemas/$(gschemabase).$(extensionname).gschema.xml" "$(builddir)/_build/$(uuid)/schemas"; \
