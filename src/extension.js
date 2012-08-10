@@ -571,6 +571,8 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._onDimUnfocusedWindowsChanged));
         this._settingWindowListBehaviorChangedId = settings.connect("changed::"+Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY,
             Lang.bind(this, this._onWindowListBehaviorChanged));
+        this._settingPanelVisibilityChangedId = settings.connect("changed::"+Lib.Settings.PANEL_VISIBILITY_KEY,
+            Lang.bind(this, this._onPanelVisibilityChanged));
         
         this._nWorkspacesChangedId = global.screen.connect('notify::n-workspaces',
             Lang.bind(this, this._numWorkspacesChanged));
@@ -648,6 +650,12 @@ const StatusButton = new Lang.Class({
     
     _onWindowListBehaviorChanged: function() {
         if (this.isActivated) {
+            this.updateWorkspaceIndicator();
+        }
+    },
+    
+    _onPanelVisibilityChanged: function() {
+        if (this.isActivated && settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'overlay') {
             this.updateWorkspaceIndicator();
         }
     },
@@ -807,9 +815,13 @@ const StatusButton = new Lang.Class({
             this._intellihide = undefined;
         }
         // Use intellihide in overlay mode only
-        if (settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'overlay') {
-            this._intellihide = new Intellihide.Intellihide(this._view.actor, new Intellihide.SlideRightScreenEffect(Overview.ANIMATION_TIME));
-            this._intellihide.adjustActorVisibility();
+        if (
+            settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'overlay' &&
+            settings.get_string(Lib.Settings.PANEL_VISIBILITY_KEY) == 'intellihide') {
+            this._intellihide = new Intellihide.Intellihide(
+                this._view.actor,
+                new Intellihide.SlideRightScreenEffect(Overview.ANIMATION_TIME),
+                Overview.ANIMATION_TIME*1000*2.5);
         }
         if (settings.get_boolean(Lib.Settings.ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY)) {
             this._connectWorkspaceSwitchingEvents();
@@ -859,6 +871,10 @@ const StatusButton = new Lang.Class({
         if (this._settingWindowListBehaviorChangedId > 0) {
             settings.disconnect(this._settingWindowListBehaviorChangedId);
             this._settingWindowListBehaviorChangedId = 0;
+        }
+        if (this._settingPanelVisibilityChangedId > 0) {
+            settings.disconnect(this._settingPanelVisibilityChangedId);
+            this._settingPanelVisibilityChangedId = 0;
         }
         if (this._viewScrollId > 0 && this._view) {
             if (this._view.actor) {

@@ -29,7 +29,7 @@ const Mainloop = imports.mainloop;
 const Intellihide = new Lang.Class({
     Name: 'Intellihide',
     
-    _init: function(actor, effect) {
+    _init: function(actor, effect, time_init) {
         this.actor = actor;
         this._actorDestroyId = this.actor.connect('destroy',
             Lang.bind(this, this.destroy));
@@ -43,7 +43,7 @@ const Intellihide = new Lang.Class({
         
         this._actorRect = undefined;
         this._lastVisibilityActionTime = GLib.get_monotonic_time() / 1000.0;
-        this._startupTimeoutId = Mainloop.timeout_add(1000,
+        this._startupTimeoutId = Mainloop.timeout_add(time_init,
             Lang.bind(this, function () {
                 this._focusWindowChanged();
                 this._startupTimeoutId = 0;
@@ -109,7 +109,7 @@ const Intellihide = new Lang.Class({
     
     _focusWindowGeometryChanged: function() {
         let now = GLib.get_monotonic_time() / 1000.0;
-        if (now > this._lastVisibilityActionTime + this.effect.time*1000.0 + 50.0) {
+        if (now > this._lastVisibilityActionTime + this.effect.time*1000.0 + 100.0) {
             this.adjustActorVisibility();
         }
     },

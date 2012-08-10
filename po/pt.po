@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-shell-extensions-workspace-monitor 4\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-08-02 22:12+0200\n"
-"PO-Revision-Date: 2012-08-02 23:04+0100\n"
+"POT-Creation-Date: 2012-08-09 11:49+0200\n"
+"PO-Revision-Date: 2012-08-09 11:52+0100\n"
 "Last-Translator: Vincent Petithory <vincent.petithory@gmail.com>\n"
 "Language-Team: Portuguese\n"
 "Language: pt\n"
@@ -17,11 +17,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. Switch visible / hidden
-#: ../src/extension.js:528
+#: ../src/extension.js:545
 msgid "Workspace Monitor"
 msgstr "Monitor do ambiente de trabalho"
 
-#: ../src/extension.js:687
+#: ../src/extension.js:723
 msgid "Workspace"
 msgstr "Ambiente de trabalho"
 
@@ -53,35 +53,47 @@ msgstr "Dock"
 msgid "Overlay"
 msgstr "Sobreposição"
 
+#: ../src/prefs.js:132
+msgid "Visibility:"
+msgstr "Visibilidade :"
+
 #: ../src/prefs.js:134
+msgid "Always visible"
+msgstr "Sempre visível"
+
+#: ../src/prefs.js:135
+msgid "Intellihide"
+msgstr "Intellihide"
+
+#: ../src/prefs.js:163
 msgid "Actions"
 msgstr "Acções"
 
-#: ../src/prefs.js:146
+#: ../src/prefs.js:175
 msgid "Use the mouse wheel to switch of workspace"
 msgstr "Usar a roda do rato para trocar de ambiente de trabalho"
 
-#: ../src/prefs.js:158
+#: ../src/prefs.js:187
 msgid "Shortcut to show or hide the panel"
 msgstr "Atalho para mostrar ou ocultar o painel"
 
-#: ../src/prefs.js:179
+#: ../src/prefs.js:208
 msgid "Behavior"
 msgstr "Comportamento"
 
-#: ../src/prefs.js:191
+#: ../src/prefs.js:220
 msgid "Always show the active workspace"
 msgstr "Mostrar sempre o ambiente de trabalho activo"
 
-#: ../src/prefs.js:206
+#: ../src/prefs.js:235
 msgid "List of windows"
 msgstr "Lista de janelas"
 
-#: ../src/prefs.js:213
+#: ../src/prefs.js:242
 msgid "Show all the windows of the selected workspace"
 msgstr "Mostrar todas as janelas do ambiente de trabalho seleccionado"
 
-#: ../src/prefs.js:214
+#: ../src/prefs.js:243
 msgid "Show all the windows except those of the selected workspace"
 msgstr "Mostrar todas as janelas excepto as do ambiente de trabalho seleccionado"
 

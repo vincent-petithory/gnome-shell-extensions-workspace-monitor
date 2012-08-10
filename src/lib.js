@@ -34,7 +34,8 @@ const Settings = {
     DIM_UNFOCUSED_WINDOWS_KEY: 'dim-unfocused-windows',
     ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY: 'always-track-active-workspace',
     TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING_KEY: 'toggle-workspace-monitor-panel-keybinding',
-    WINDOW_LIST_BEHAVIOR_KEY: 'window-list-behavior'
+    WINDOW_LIST_BEHAVIOR_KEY: 'window-list-behavior',
+    PANEL_VISIBILITY_KEY: 'panel-visibility'
 }
 
 function getSettings(extension) {

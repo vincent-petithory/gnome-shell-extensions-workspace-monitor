@@ -11,6 +11,7 @@ po/stamp-it
 
 *~
 *.gmo
+*.pot
 metadata.json
 *.gschema.xml
 *.gschema.valid

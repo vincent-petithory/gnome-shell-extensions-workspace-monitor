@@ -8,6 +8,10 @@
         <value value="0" nick="onworkspace"/>
         <value value="1" nick="notonworkspace"/>
     </enum>
+    <enum id="org.gnome.shell.extensions.workspace-monitor.panel-visibility">
+        <value value="0" nick="alwaysvisible"/>
+        <value value="1" nick="intellihide"/>
+    </enum>
   <schema path="/org/gnome/shell/extensions/workspace-monitor/" id="org.gnome.shell.extensions.workspace-monitor">
     <key name="display-mode" enum="org.gnome.shell.extensions.workspace-monitor.display-mode">
       <default>'dock'</default>
@@ -47,6 +51,13 @@
       <description>The window list to display:
       onworkspace: will display the windows belonging to the selected workspace,
       notonworkspace: will display the windows that are not belonging to the selected workspace.</description>
+    </key>
+    <key name="panel-visibility" enum="org.gnome.shell.extensions.workspace-monitor.panel-visibility">
+      <default>'intellihide'</default>
+      <summary>Visibility of the panel in overlay mode</summary>
+      <description>The logic of the panel's visibility in overlay mode:
+      alwaysvisible: the panel stays visible at all times,
+      intellihide: the panel will be hidden if the active window covers its allocated space.</description>
     </key>
     <key name="toggle-workspace-monitor-panel-keybinding" type="as">
       <default><![CDATA[['<Alt>F3']]]></default>

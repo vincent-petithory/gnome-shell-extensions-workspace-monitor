@@ -111,16 +111,45 @@ function _createDisplayModeSetting() {
         overlay.set_active(true);
 
     dock.connect('toggled', function(button) {
-        if (button.get_active())
+        if (button.get_active()) {
+            hbox.set_no_show_all(false);
             settings.set_string(Lib.Settings.DISPLAY_MODE_KEY, 'dock');
+            hbox.hide();
+        }
     });
     overlay.connect('toggled', function(button) {
-        if (button.get_active())
+        if (button.get_active()) {
+            hbox.set_no_show_all(false);
             settings.set_string(Lib.Settings.DISPLAY_MODE_KEY, 'overlay');
+            hbox.show();
+        }
     });
+    
+    
+    let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL,
+                             margin_left: 20, margin_top: 5});
+                            
+    let settingLabel2 = new Gtk.Label({label:_("Visibility:"), margin_right: 5});
+    let visibilityComboBoxText = new Gtk.ComboBoxText();
+    visibilityComboBoxText.append('alwaysvisible', _("Always visible"));
+    visibilityComboBoxText.append('intellihide', _("Intellihide"));
+    visibilityComboBoxText.set_active_id(settings.get_string(Lib.Settings.PANEL_VISIBILITY_KEY));
+    visibilityComboBoxText.connect('changed', function() {
+        settings.set_string(Lib.Settings.PANEL_VISIBILITY_KEY, visibilityComboBoxText.get_active_id());
+    });
+    
+    hbox.add(settingLabel2);
+    hbox.add(visibilityComboBoxText);
 
     vbox.add(dock);
     vbox.add(overlay);
+    vbox.add(hbox);
+    
+    hbox.show_all();
+    if (settings.get_string(Lib.Settings.DISPLAY_MODE_KEY) == 'dock') {
+        hbox.set_no_show_all(true);
+        hbox.hide();
+    }
 
     container.add(settingLabel);
     container.add(vbox);
