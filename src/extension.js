@@ -69,7 +69,7 @@ const WindowClone = new Lang.Class({
             reactive: false
         });
         if (this._dimActors) {
-            this._windowClone._dimmer = new Dim.DimEffect(this._windowClone);
+            this._windowClone._dimmer = dim_effect_pool.getDimEffect(this._windowClone);
         }
         group.add_actor(this._windowClone);
         
@@ -87,7 +87,7 @@ const WindowClone = new Lang.Class({
             let app = Shell.WindowTracker.get_default().get_window_app(this.metaWindow);
             this._icon = app.create_icon_texture(this.ICON_SIZE);
             if (this._dimActors) {
-                this._icon._dimmer = new Dim.DimEffect(this._icon);
+                this._icon._dimmer = dim_effect_pool.getDimEffect(this._icon);
             }
             group.add_actor(this._icon);
         }
@@ -149,6 +149,9 @@ const WindowClone = new Lang.Class({
     destroy: function() {
         this._disconnectRealWindowSignals();
         if (this._windowClone) {
+            if (this._windowClone._dimmer) {
+                this._windowClone._dimmer.destroy();
+            }
             this._windowClone.destroy();
         }
         if (this.actor) {
@@ -158,6 +161,13 @@ const WindowClone = new Lang.Class({
             this._windowCloneClickedId = 0;
             this.actor.destroy();
         }
+        if (this._icon) {
+            if (this._icon._dimmer) {
+                this._icon._dimmer.destroy();
+            }
+            this._icon.destroy();
+        }
+        
     },
     
     _onButtonRelease: function() {
@@ -447,8 +457,16 @@ const WorkspaceMonitor = new Lang.Class({
     },
     
     resetWindows: function () {
-        // Empty container
+        // Destroy window clones
+        for (let i = 0; i < this._windowClones.length; i++) {
+            let windowClone = this._windowClones[i];
+            if (windowClone.actor) {
+                this._box.remove_actor(windowClone.actor);
+            }
+            windowClone.destroy();
+        }
         this._box.destroy_all_children();
+        this._windowClones = [];
         
         let windows = global.get_window_actors().filter(this._isWindowInteresting, this);
         for (let i = 0; i < windows.length; i++) {
@@ -861,7 +879,7 @@ const StatusButton = new Lang.Class({
 });
 
 
-let status_button;
+let status_button, dim_effect_pool;
 
 function init() {
     Lib.initTranslations(extension);
@@ -869,6 +887,9 @@ function init() {
 }
 
 function enable() {
+    if (!dim_effect_pool) {
+        dim_effect_pool = new Dim.DimEffectPool(20);
+    }
     if (!status_button) {
         status_button = new StatusButton();
         Main.panel.addToStatusArea('workspace_monitor_button', status_button);
@@ -878,5 +899,7 @@ function enable() {
 function disable() {
     status_button.destroy();
     status_button = undefined;
+    dim_effect_pool.destroy();
+    dim_effect_pool = undefined;
 }
 

@@ -37,24 +37,68 @@ function getDimShaderSource() {
     return dimShader;
 }
 
+const DimEffectPool = new Lang.Class({
+    Name: 'DimEffectPool',
+    
+    _init: function(n) {
+        this._pool = [];
+        while (--n > -1) {
+            this._pool.push(this.createEffect());
+        }
+    },
+    
+    getDimEffect: function(actor) {
+        let n = this._pool.length;
+        for (let i = 0; i < n; i++) {
+            if (!this._pool[i]._used) {
+                return new DimEffect(actor, this._pool[i]);
+            }
+        }
+        // Allocate a new effect
+        global.log("allocated an effect");
+        let e = this.createEffect();
+        this._pool.push(e);
+        return new DimEffect(actor, e);
+    },
+    
+    createEffect: function() {
+        let effect;
+        if (Clutter.feature_available(Clutter.FeatureFlags.SHADERS_GLSL)) {
+            effect = new Clutter.ShaderEffect({ shader_type: Clutter.ShaderType.FRAGMENT_SHADER });
+            effect.set_shader_source(getDimShaderSource());
+        } else {
+            effect = undefined;
+        }
+        return effect;
+    },
+    
+    destroy: function() {
+        this._pool = undefined;
+    }
+    
+});
+
 const DimEffect = new Lang.Class({
     Name: 'DimEffect',
 
-    _init: function(actor) {
-        if (Clutter.feature_available(Clutter.FeatureFlags.SHADERS_GLSL)) {
-            this._effect = new Clutter.ShaderEffect({ shader_type: Clutter.ShaderType.FRAGMENT_SHADER });
-            this._effect.set_shader_source(getDimShaderSource());
-        } else {
-            this._effect = null;
-        }
-
+    _init: function(actor, effect) {
+        this._effect = effect;
         this.actor = actor;
+        this._effect._used = true;
+    },
+    
+    destroy: function() {
+        if (this._effect.actor && this.actor) {
+            this.actor.remove_effect(this._effect);
+        }
+        this._effect._used = false;
+        this._effect = undefined;
     },
 
     set dimFraction(fraction) {
         this._dimFraction = fraction;
 
-        if (this._effect == null)
+        if (this._effect == undefined)
             return;
 
         if (fraction > 0.01) {
