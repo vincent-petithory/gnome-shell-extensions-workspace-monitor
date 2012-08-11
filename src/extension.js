@@ -134,7 +134,7 @@ const WindowClone = new Lang.Class({
     adjust_size: function (maxHeight) {
         let [width, height] = this._texture.get_size();
         let scale = Math.min(1.0, settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY)/width, maxHeight/height);
-        let [sw, sh] = [Math.round(width*scale), Math.round(height*scale)];
+        let [sw, sh] = [width*scale, height*scale];
         this.actor.set_size(settings.get_int(Lib.Settings.THUMBNAIL_MAX_SIZE_KEY), sh);
         this._windowClone.set_size(sw, sh);
         if (this._border) {
@@ -292,8 +292,8 @@ const WorkspaceMonitor = new Lang.Class({
             if (!this._isWindowInteresting(realWin)) {
                 return;
             }
-            this.computeSize();
             this._doAddWindow(realWin);
+            this.computeSize();
             this.position();
         }
     },
@@ -378,8 +378,8 @@ const WorkspaceMonitor = new Lang.Class({
         }
         
         let monitor = Main.layoutManager.primaryMonitor;
-        this._marginTop = monitor.y + Main.panel.actor.height + 10;
-        this._marginBottom = 20;
+        this._marginTop = monitor.y + Main.panel.actor.height + 5;
+        this._marginBottom = Main.messageTray.actor.height + 10;
         
         let spacing;
         try {
@@ -388,7 +388,7 @@ const WorkspaceMonitor = new Lang.Class({
             spacing = 0;
         }
         let maxHeight = (monitor.height - 
-            (this._marginTop + this._marginBottom + spacing*(numWindows-1))
+            (this._marginTop + this._marginBottom + spacing*(numWindows-1) + 15)
         ) / numWindows;
         this._maxHeight = maxHeight;
     },
