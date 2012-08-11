@@ -599,16 +599,24 @@ const StatusButton = new Lang.Class({
     
     _onThumbnailMaxSizeChanged: function () {
         this.hideWorkspaceIndicator();
-        this._view.destroy();
+        if (this._view) {
+            this._view.destroy();
+        }
         this._view = undefined;
-        this.updateWorkspaceIndicator();
+        if (this.isActivated) {
+            this.updateWorkspaceIndicator();
+        }
     },
     
     _onDisplayModeChanged: function () {
         this.hideWorkspaceIndicator();
-        this._view.destroy();
+        if (this._view) {
+            this._view.destroy();
+        }
         this._view = undefined;
-        this.updateWorkspaceIndicator();
+        if (this.isActivated) {
+            this.updateWorkspaceIndicator();
+        }
     },
     
     _onUseMouseWheelChanged: function () {
@@ -676,7 +684,9 @@ const StatusButton = new Lang.Class({
         if (this._selectedWorkspaceIndex != to) {
             this._selectedWorkspaceIndex = to;
             this._workspaceSwitcherCombo.setActiveItem(this._selectedWorkspaceIndex);
-            this.updateWorkspaceIndicator();
+            if (this.isActivated) {
+                this.updateWorkspaceIndicator();
+            }
         }
     },
     
