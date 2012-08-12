@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-shell-extensions-workspace-monitor 4\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-08-09 11:49+0200\n"
-"PO-Revision-Date: 2012-08-09 11:53+0100\n"
+"POT-Creation-Date: 2012-08-12 22:16+0200\n"
+"PO-Revision-Date: 2012-08-12 22:16+0100\n"
 "Last-Translator: Vincent Petithory <vincent.petithory@gmail.com>\n"
 "Language-Team: French\n"
 "Language: fr\n"
@@ -18,85 +18,93 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #. Switch visible / hidden
-#: ../src/extension.js:545
+#: ../src/extension.js:531
 msgid "Workspace Monitor"
 msgstr "Moniteur d'espace de travail"
 
-#: ../src/extension.js:723
+#: ../src/extension.js:721
 msgid "Workspace"
 msgstr "Espace de travail"
 
-#: ../src/prefs.js:38
+#: ../src/prefs.js:71
 msgid "Display"
 msgstr "Affichage"
 
-#: ../src/prefs.js:49
+#: ../src/prefs.js:82
 msgid "Panel width"
 msgstr "Largeur du panneau"
 
-#: ../src/prefs.js:68
+#: ../src/prefs.js:101
 msgid "Show the window's application icon"
 msgstr "Afficher l'icône d'application de la fenêtre"
 
-#: ../src/prefs.js:80
+#: ../src/prefs.js:113
 msgid "Dim unfocused windows"
 msgstr "Estomper les fenêtres désactivées"
 
-#: ../src/prefs.js:95
+#: ../src/prefs.js:128
 msgid "Display mode"
 msgstr "Mode d'affichage"
 
-#: ../src/prefs.js:102
+#: ../src/prefs.js:135
 msgid "Dock"
 msgstr "Dock"
 
-#: ../src/prefs.js:103
+#: ../src/prefs.js:136
 msgid "Overlay"
 msgstr "Surcouche"
 
-#: ../src/prefs.js:132
+#: ../src/prefs.js:165
 msgid "Visibility:"
 msgstr "Visibilité :"
 
-#: ../src/prefs.js:134
+#: ../src/prefs.js:167
 msgid "Always visible"
 msgstr "Toujours visible"
 
-#: ../src/prefs.js:135
+#: ../src/prefs.js:168
 msgid "Intellihide"
 msgstr "Intellihide"
 
-#: ../src/prefs.js:163
+#: ../src/prefs.js:196
 msgid "Actions"
 msgstr "Actions"
 
-#: ../src/prefs.js:175
+#: ../src/prefs.js:208
 msgid "Use the mouse wheel to switch of workspace"
 msgstr "Utiliser la molette de la souris pour changer d'espace de travail"
 
-#: ../src/prefs.js:187
+#: ../src/prefs.js:220
 msgid "Shortcut to show or hide the panel"
 msgstr "Raccourci pour afficher ou cacher le panneau"
 
-#: ../src/prefs.js:208
+#: ../src/prefs.js:241
 msgid "Behavior"
 msgstr "Comportement"
 
-#: ../src/prefs.js:220
+#: ../src/prefs.js:253
 msgid "Always show the active workspace"
 msgstr "Toujours montrer l'espace de travail actif"
 
-#: ../src/prefs.js:235
+#: ../src/prefs.js:268
 msgid "List of windows"
 msgstr "Liste des fenêtres"
 
-#: ../src/prefs.js:242
+#: ../src/prefs.js:275
 msgid "Show all the windows of the selected workspace"
 msgstr "Afficher toutes les fenêtres de l'espace de travail sélectionné"
 
-#: ../src/prefs.js:243
+#: ../src/prefs.js:276
 msgid "Show all the windows except those of the selected workspace"
 msgstr "Afficher toutes les fenêtres sauf celles de l'espace de travail sélectionné"
+
+#: ../src/prefs.js:278
+msgid "Custom window filtering"
+msgstr "Filtrage personnalisé des fenêtres"
+
+#: ../src/prefs.js:280
+msgid "Edit filter rules"
+msgstr "Éditer les règles du filtre"
 
 #~ msgid "Window thumbnail maximum size"
 #~ msgstr "Taille maximale des vignettes des fenêtres"
