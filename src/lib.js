@@ -34,7 +34,8 @@ const Settings = {
     DIM_UNFOCUSED_WINDOWS_KEY: 'dim-unfocused-windows',
     ALWAYS_TRACK_ACTIVE_WORKSPACE_KEY: 'always-track-active-workspace',
     TOGGLE_WORKSPACE_MONITOR_PANEL_KEYBINDING_KEY: 'toggle-workspace-monitor-panel-keybinding',
-    WINDOW_LIST_BEHAVIOR_KEY: 'window-list-behavior',
+    WINDOW_FILTER_KEY: 'window-filter',
+    CUSTOM_WINDOW_FILTER_DATA_KEY: 'custom-window-filter-data',
     PANEL_VISIBILITY_KEY: 'panel-visibility'
 }
 

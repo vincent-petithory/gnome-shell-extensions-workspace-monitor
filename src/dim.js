@@ -55,7 +55,6 @@ const DimEffectPool = new Lang.Class({
             }
         }
         // Allocate a new effect
-        global.log("allocated an effect");
         let e = this.createEffect();
         this._pool.push(e);
         return new DimEffect(actor, e);

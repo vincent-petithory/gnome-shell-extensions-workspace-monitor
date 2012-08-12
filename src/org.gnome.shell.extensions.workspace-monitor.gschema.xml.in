@@ -4,9 +4,10 @@
         <value value="0" nick="dock"/>
         <value value="1" nick="overlay"/>
     </enum>
-    <enum id="org.gnome.shell.extensions.workspace-monitor.window-list-behavior">
-        <value value="0" nick="onworkspace"/>
-        <value value="1" nick="notonworkspace"/>
+    <enum id="org.gnome.shell.extensions.workspace-monitor.window-filter">
+        <value value="0" nick="WindowOnWorkspaceFilter"/>
+        <value value="1" nick="WindowNotOnWorkspaceFilter"/>
+        <value value="2" nick="CustomWindowFilter"/>
     </enum>
     <enum id="org.gnome.shell.extensions.workspace-monitor.panel-visibility">
         <value value="0" nick="alwaysvisible"/>
@@ -45,12 +46,18 @@
       <summary>Dims windows that are not focused.</summary>
       <description>Dims windows that are not focused.</description>
     </key>
-    <key name="window-list-behavior" enum="org.gnome.shell.extensions.workspace-monitor.window-list-behavior">
-      <default>'onworkspace'</default>
-      <summary>The behavior to display the window list</summary>
+    <key name="window-filter" enum="org.gnome.shell.extensions.workspace-monitor.window-filter">
+      <default>'WindowOnWorkspaceFilter'</default>
+      <summary>Filters the windows to be displayed.</summary>
       <description>The window list to display:
-      onworkspace: will display the windows belonging to the selected workspace,
-      notonworkspace: will display the windows that are not belonging to the selected workspace.</description>
+      WindowOnWorkspaceFilter: will display the windows belonging to the selected workspace,
+      WindowNotOnWorkspaceFilter: will display the windows that are not belonging to the selected workspace,
+      CustomWindowFilter: will display windows based on user-defined rules.</description>
+    </key>
+    <key name="custom-window-filter-data" type="s">
+      <default>'true'</default>
+      <summary>CustomWindowFilter data.</summary>
+      <description>The js code that defines the CustomWindowFilter data. This code is evaluated with eval().</description>
     </key>
     <key name="panel-visibility" enum="org.gnome.shell.extensions.workspace-monitor.panel-visibility">
       <default>'intellihide'</default>

@@ -194,6 +194,7 @@ const Intellihide = new Lang.Class({
 
 const Effect = new Lang.Class({
     Name: 'Effect',
+    Abstract: true,
     
     _init: function(time) {
         this.time = time;

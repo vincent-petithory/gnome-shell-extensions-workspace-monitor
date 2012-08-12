@@ -39,6 +39,7 @@ let extension = imports.misc.extensionUtils.getCurrentExtension();
 let Lib = extension.imports.lib;
 let Dim = extension.imports.dim;
 let Intellihide = extension.imports.intellihide;
+let WindowFilter = extension.imports.windowfilter;
 
 const Gettext = imports.gettext.domain(Lib.GETTEXT_DOMAIN);
 const _ = Gettext.gettext;
@@ -196,13 +197,12 @@ const WindowClone = new Lang.Class({
 const WorkspaceMonitor = new Lang.Class({
     Name: 'WorkspaceMonitor',
 
-    _init: function(metaWorkspace) {
+    _init: function(metaWorkspace, windowFilter) {
         this.monitorIndex = Main.layoutManager.primaryIndex;
         this.request_display = false;
         
-        this._invertWindowList = settings.get_string(Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY) == 'notonworkspace';
-
         this.metaWorkspace = metaWorkspace;
+        this.windowFilter = windowFilter;
         
         this._windowClones = [];
         
@@ -238,8 +238,8 @@ const WorkspaceMonitor = new Lang.Class({
         }
     },
     
-    set_meta_workspace: function(metaWorkspace) {
-        this._invertWindowList = settings.get_string(Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY) == 'notonworkspace';
+    set_meta_workspace: function(metaWorkspace, windowFilter) {
+        this.windowFilter = windowFilter;
         this.disconnectAll();
         this.metaWorkspace = metaWorkspace;
         this.connectAll();
@@ -269,12 +269,6 @@ const WorkspaceMonitor = new Lang.Class({
     
     _windowAdded: function (metaWorkspace, metaWin) {
         if (!this.request_display) {
-            return;
-        }
-        if (
-            (!this._invertWindowList && this.metaWorkspace != metaWorkspace) ||
-            (this._invertWindowList && this.metaWorkspace == metaWorkspace)
-            ) {
             return;
         }
         let realWin = metaWin.get_compositor_private();
@@ -401,16 +395,8 @@ const WorkspaceMonitor = new Lang.Class({
 
     // Tests if @win is interesting
     _isWindowInteresting: function (win) {
-        let tracker = Shell.WindowTracker.get_default();
         let metaWin = win.get_meta_window();
-        let interesting = tracker.is_window_interesting(metaWin) &&
-               metaWin.showing_on_its_workspace();
-        let onWorkspace = Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index());
-        if (this._invertWindowList) {
-            return interesting && !onWorkspace;
-        } else {
-            return interesting && onWorkspace;
-        }
+        return this.windowFilter.filter(win, metaWin, this.metaWorkspace);
     },
     
     show: function() {
@@ -569,8 +555,10 @@ const StatusButton = new Lang.Class({
             Lang.bind(this, this._onShowAppIconChanged));
         this._settingDimUnfocusedWindowsChangedId = settings.connect("changed::"+Lib.Settings.DIM_UNFOCUSED_WINDOWS_KEY,
             Lang.bind(this, this._onDimUnfocusedWindowsChanged));
-        this._settingWindowListBehaviorChangedId = settings.connect("changed::"+Lib.Settings.WINDOW_LIST_BEHAVIOR_KEY,
-            Lang.bind(this, this._onWindowListBehaviorChanged));
+        this._settingWindowFilterChangedId = settings.connect("changed::"+Lib.Settings.WINDOW_FILTER_KEY,
+            Lang.bind(this, this._onWindowFilterChanged));
+        this._settingCustomWindowFilterDataChangedId = settings.connect("changed::"+Lib.Settings.CUSTOM_WINDOW_FILTER_DATA_KEY,
+            Lang.bind(this, this._onCustomWindowFilterDataChanged));
         this._settingPanelVisibilityChangedId = settings.connect("changed::"+Lib.Settings.PANEL_VISIBILITY_KEY,
             Lang.bind(this, this._onPanelVisibilityChanged));
         
@@ -656,9 +644,17 @@ const StatusButton = new Lang.Class({
         }
     },
     
-    _onWindowListBehaviorChanged: function() {
+    _onWindowFilterChanged: function() {
         if (this.isActivated) {
             this.updateWorkspaceIndicator();
+        }
+    },
+    
+    _onCustomWindowFilterDataChanged: function() {
+        if (this.isActivated) {
+            if (settings.get_string(Lib.Settings.WINDOW_FILTER_KEY) == 'CustomWindowFilter') {
+                this.updateWorkspaceIndicator();
+            }
         }
     },
     
@@ -802,12 +798,13 @@ const StatusButton = new Lang.Class({
     },
     
     updateWorkspaceIndicator: function() {
+        let windowFilter = WindowFilter.create(settings.get_string(Lib.Settings.WINDOW_FILTER_KEY));
         this._metaWorkspace = global.screen.get_workspace_by_index(this._selectedWorkspaceIndex);
         if (this._view) {
-            this._view.set_meta_workspace(this._metaWorkspace);
+            this._view.set_meta_workspace(this._metaWorkspace, windowFilter);
             this._view.show();
         } else {
-            this._view = new WorkspaceMonitor(this._metaWorkspace);
+            this._view = new WorkspaceMonitor(this._metaWorkspace, windowFilter);
             if (settings.get_boolean(Lib.Settings.USE_MOUSE_WHEEL_KEY)) {
                 this._viewScrollId = this._view.actor.connect('scroll-event',
                     Lang.bind(this, this._onViewScrollEvent));
@@ -878,9 +875,13 @@ const StatusButton = new Lang.Class({
             settings.disconnect(this._settingShowAppIconChangedId);
             this._settingShowAppIconChangedId = 0;
         }
-        if (this._settingWindowListBehaviorChangedId > 0) {
-            settings.disconnect(this._settingWindowListBehaviorChangedId);
-            this._settingWindowListBehaviorChangedId = 0;
+        if (this._settingWindowFilterChangedId > 0) {
+            settings.disconnect(this._settingWindowFilterChangedId);
+            this._settingWindowFilterChangedId = 0;
+        }
+        if (this._settingCustomWindowFilterDataChangedId > 0) {
+            settings.disconnect(this._settingCustomWindowFilterDataChangedId);
+            this._settingCustomWindowFilterDataChangedId = 0;
         }
         if (this._settingPanelVisibilityChangedId > 0) {
             settings.disconnect(this._settingPanelVisibilityChangedId);
